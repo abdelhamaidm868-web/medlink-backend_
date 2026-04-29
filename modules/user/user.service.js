@@ -18,37 +18,71 @@ export const get_profile = (req, res) => {
 }
 
 //////////////////////////////////////////////////////////////////
-
 export const update_profile = async (req, res) => {
   try {
     const { id_user, name, email, password, phone, location, ProfileImagePath } = req.body;
 
-    if (!id_user || !name || !email) {
-      return res.status(400).json({ msg: "Missing required fields" });
+    if (!id_user) {
+      return res.status(400).json({ msg: "id_user is required" });
     }
 
-    let hashedPassword = password;
+    let fields = [];
+    let values = [];
+
+    if (name) {
+      fields.push("Name = ?");
+      values.push(name);
+    } 
+
+    if (email) {
+      fields.push("Email = ?");
+      values.push(email);
+    }
+
+    if (phone) {
+      fields.push("Phone = ?");
+      values.push(phone);
+    }
+
+    if (location) {
+      fields.push("Location = ?");
+      values.push(location);
+    }
+
+    if (ProfileImagePath) {
+      fields.push("ProfileImagePath = ?");
+      values.push(ProfileImagePath);
+    }
 
     if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      fields.push("Password = ?");
+      values.push(hashedPassword);
+    }
+
+    // ❌ مفيش أي حاجة تتحدث
+    if (fields.length === 0) {
+      return res.status(400).json({ msg: "No data to update" });
     }
 
     const query = `
-    UPDATE users
-      SET Name = ?, Email = ?, Password = ?, Phone = ?, Location = ?, ProfileImagePath = ?
+      UPDATE users 
+      SET ${fields.join(", ")} 
       WHERE id = ?
     `;
 
-    const values = [name, email, hashedPassword, phone, location, ProfileImagePath, id_user];
+    values.push(id_user);
 
     db.execute(query, values, (error, result) => {
       if (error) return res.status(500).json({ msg: error.message });
-      res.status(200).json({ msg: "Process Update Done", data: result });
+      res.status(200).json({ msg: "Profile updated", data: result });
     });
+
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
-}
+};
+
 //////////////////////////////////////////////////////////////////
 
 export const add_medicine = (req, res) => {
