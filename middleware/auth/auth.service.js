@@ -22,7 +22,7 @@ export const userRegister = (req, res) => {
   const checkQuery = "SELECT * FROM users WHERE email = ?";
 
   db.execute(checkQuery, [email], async (err, results) => {
-
+ 
     if (err) {
       console.log(err);
       return res.status(500).json({

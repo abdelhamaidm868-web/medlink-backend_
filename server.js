@@ -23,7 +23,9 @@ app.use("/order" , order_router)
 app.use("/user" , user_router)
 app.use ("/pharmcy" , pharmacy_router)
 //////////////////////////////////////////
-
+app.get('/', (req, res) => {
+  res.send('Server working')
+})
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
