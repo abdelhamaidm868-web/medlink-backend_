@@ -114,7 +114,6 @@ export const getOrderById = async (req, res) => {
         o.Id AS order_id,
         o.UserId,
         o.PharmacyId,
-        o.TotalPrice,
         o.OrderStatus,
         o.OrderDate,
 
@@ -122,7 +121,9 @@ export const getOrderById = async (req, res) => {
         od.Quantity,
         od.Price,
 
-        m.Name AS medicine_name
+        m.Name AS medicine_name,
+
+        SUM(od.Quantity * od.Price) OVER (PARTITION BY o.Id) AS total_price
 
       FROM orders o
       JOIN orderdetails od ON o.Id = od.OrderId
@@ -137,7 +138,6 @@ export const getOrderById = async (req, res) => {
     const ordersMap = {};
 
     for (const row of rows) {
-
       const quantity = Number(row.Quantity);
       const price = Number(row.Price);
 
@@ -146,7 +146,7 @@ export const getOrderById = async (req, res) => {
           order_id: row.order_id,
           user_id: row.UserId,
           pharmacy_id: row.PharmacyId,
-          total_price: Number(row.TotalPrice),
+          total_price: Number(row.total_price), // ✅ FIX هنا
           status: row.OrderStatus,
           order_date: row.OrderDate,
           items: []
@@ -162,9 +162,7 @@ export const getOrderById = async (req, res) => {
       });
     }
 
-    const orders = Object.values(ordersMap);
-
-    res.json(orders);
+    res.json(Object.values(ordersMap));
 
   } catch (error) {
     console.error(error);
