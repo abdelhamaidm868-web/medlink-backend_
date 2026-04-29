@@ -162,13 +162,13 @@ export const addNewMedicine = (req, res) => {
 // ----------------------------------update pharmacy info----------------------------------
 
 export const updatePharmacy = async (req, res) => {
-  const { Name , pharmacyId, phone, location, password } = req.body;
+  const { Name, Email, pharmacyId, phone, location, password } = req.body;
 
   if (!pharmacyId) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
   }
 
-  // التحقق من وجود الصيدلية
+  // ✅ التحقق من وجود الصيدلية
   const checkQuery = "SELECT * FROM pharmacy WHERE Id = ?";
   db.execute(checkQuery, [pharmacyId], async (err, result) => {
     if (err) {
@@ -183,56 +183,115 @@ export const updatePharmacy = async (req, res) => {
     let fields = [];
     let values = [];
 
+    // ✅ Name
     if (Name) {
       fields.push("Name = ?");
       values.push(Name);
     }
 
+    // ✅ Email + uniqueness check
+    if (Email) {
+      const emailCheck = "SELECT Id FROM pharmacy WHERE Email = ? AND Id != ?";
 
-    if (phone) {
-      fields.push("Phone = ?");
-      values.push(phone);
-    }
+      db.execute(emailCheck, [Email, pharmacyId], async (err, emailResult) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ message: "Server error" });
+        }
 
-    if (location) {
-      fields.push("Location = ?");
-      values.push(location);
-    }
+        if (emailResult.length > 0) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      fields.push("Password = ?");
-      values.push(hashedPassword);
-    }
+        // 👇 نكمل باقي التحديث جوه هنا عشان الإيميل يعدي الأول
 
-    
+        fields.push("Email = ?");
+        values.push(Email);
 
-    if (fields.length === 0) {
-      return res.status(400).json({ message: "No fields to update" });
-    }
+        if (phone) {
+          fields.push("Phone = ?");
+          values.push(phone);
+        }
 
-    values.push(pharmacyId); // للـ WHERE
+        if (location) {
+          fields.push("Location = ?");
+          values.push(location);
+        }
 
-    const updateQuery = `
-      UPDATE pharmacy
-      SET ${fields.join(", ")}
-      WHERE Id = ?
-    `;
+        if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          fields.push("Password = ?");
+          values.push(hashedPassword);
+        }
 
-    db.execute(updateQuery, values, (err) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Server error" });
+        if (fields.length === 0) {
+          return res.status(400).json({ message: "No fields to update" });
+        }
+
+        values.push(pharmacyId);
+
+        const updateQuery = `
+          UPDATE pharmacy
+          SET ${fields.join(", ")}
+          WHERE Id = ?
+        `;
+
+        db.execute(updateQuery, values, (err) => {
+          if (err) {
+            console.log(err);
+            return res.status(500).json({ message: "Server error" });
+          }
+
+          return res.json({ message: "Pharmacy updated successfully" });
+        });
+      });
+
+    } else {
+      // ✅ لو مفيش Email → كمل عادي
+
+      if (phone) {
+        fields.push("Phone = ?");
+        values.push(phone);
       }
 
-      res.json({ message: "Pharmacy updated successfully" });
-    });
+      if (location) {
+        fields.push("Location = ?");
+        values.push(location);
+      }
+
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        fields.push("Password = ?");
+        values.push(hashedPassword);
+      }
+
+      if (fields.length === 0) {
+        return res.status(400).json({ message: "No fields to update" });
+      }
+
+      values.push(pharmacyId);
+
+      const updateQuery = `
+        UPDATE pharmacy
+        SET ${fields.join(", ")}
+        WHERE Id = ?
+      `;
+
+      db.execute(updateQuery, values, (err) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ message: "Server error" });
+        }
+
+        return res.json({ message: "Pharmacy updated successfully" });
+      });
+    }
   });
 };
 // --------------------------------pharmacy orders----------------------------------
 
 export const getPharmacyOrders = (req, res) => {
-  const { pharmacyId } = req.query;
+  const { pharmacyId } = req.body;
 
   if (!pharmacyId) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
@@ -374,7 +433,7 @@ export const deletemedicine = (req, res) => {
       medicine.Description,
       pharmacymedicine.Price,
       pharmacymedicine.Quantity,
-      pharmacymedicine.ExpiryDate,
+      pharmacymedicine.ExpiryDate
     FROM medicine 
     JOIN pharmacymedicine
       ON medicine.Id = pharmacymedicine.MedicineId
@@ -393,12 +452,12 @@ export const deletemedicine = (req, res) => {
 
       if (lowStock.length > 0) {
         const names = lowStock.map((med) => med.Name);
-        warning = `⚠️ Low stock for: ${names.join(", ")} is less than 4 `;
+        warning = `Low stock for: ${names.join(", ")} is less than 4 `;
       }
 
       res.status(200).json({
         msg: result,
-        warning: warning, // 👈 الرسالة التحذيرية
+        warning: warning, 
       });
     } else {
       res.status(404).json({ msg: "No medicines found" });
@@ -445,9 +504,9 @@ export const search_medicine =(req, res) => {
 /////////////////////////////////////////////////////////////////////
 
 export const profile_pharmcy = (req, res) => {
-  const { id_pharmcy } = req.body;
+  const { pharmacy_id } = req.body;
 
-  if (!id_pharmcy) {
+  if (!pharmacy_id) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
   }
 
@@ -458,14 +517,13 @@ export const profile_pharmcy = (req, res) => {
     WHERE Id = ?
   `;
 
-  db.execute(pharmacyQuery, [id_pharmcy], (error, pharmacyResult) => {
+  db.execute(pharmacyQuery, [pharmacy_id], (error, pharmacyResult) => {
     if (error) return res.status(500).json({ msg: error.message });
 
     if (pharmacyResult.length === 0) {
       return res.status(404).json({ message: "Pharmacy not found" });
     }
 
-    // 2️⃣ نجيب الكومنتات
     const commentsQuery = `
       SELECT 
         c.Id,
@@ -476,9 +534,9 @@ export const profile_pharmcy = (req, res) => {
       JOIN users u ON c.User_id = u.Id
       WHERE c.Pharmacy_id = ?
       ORDER BY c.Id DESC
-    `;
+    `; 
 
-    db.execute(commentsQuery, [id_pharmcy], (error, commentsResult) => {
+    db.execute(commentsQuery, [pharmacy_id], (error, commentsResult) => {
       if (error) return res.status(500).json({ msg: error.message });
 
       // 3️⃣ نرجّع الاتنين مع بعض

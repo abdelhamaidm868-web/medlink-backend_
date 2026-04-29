@@ -13,22 +13,22 @@ router.get("/home/getall_medicine", user.home_getall_medicine)
 router.get("/home/search", user.home_search)
 
 
-router.post("/add_commint" , user.add_commint)
+router.post("/comment" , user.add_comment)
 router.put("/comment/:id" , user.updateComment)
 router.delete("/comment/:id" , user.deleteComment)
 //////////////////////////////////////////////////////////////////////////////
 
-router.post("/add_medicine/:id", user.add_medicine);
+router.post("/medicine/:id", user.add_medicine);
 
-router.delete("/del_medicine/:id", user.del_medicine);
+router.delete("/medicine/:id", user.del_medicine);
 
-router.get("/medicine_user" , user.get_medicine_user )
+router.get("/medicine" , user.get_medicine_user )
 
-router.get("/disease_user" , user.get_desise_user )
+router.get("/disease" , user.get_desise_user )
 
-router.post("/disease_user" , user.add_disease)
+router.post("/disease" , user.add_disease)
 
-router.delete("/disease_user" , user.del_disease)
-router.patch("/medicine_user_status",user.update_status_medicine)
+router.delete("/disease" , user.del_disease)
+router.patch("/medicine_status",user.update_status_medicine)
 
-export default router;
+export default router;  

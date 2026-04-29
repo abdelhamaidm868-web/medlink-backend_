@@ -21,7 +21,7 @@ app.use(cors());
 app.use("/auth" , auth_router)
 app.use("/order" , order_router)
 app.use("/user" , user_router)
-app.use ("/pharmcy" , pharmacy_router)
+app.use ("/pharmacy" , pharmacy_router)
 //////////////////////////////////////////
 app.get('/', (req, res) => {
   res.send('Server working')

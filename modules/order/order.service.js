@@ -2,10 +2,10 @@
 import { db } from "../../config/database.js";
 // ---------------------create order-------------------------------------------------------
 export const createOrder = async (req, res) => {
-  const { user_id, pharmacy_id, items } = req.body;
+  const { user_id, pharmacy_id, items, phone, address } = req.body;
 
   try {
-    if (!user_id || !pharmacy_id || !items || items.length === 0) {
+    if (!user_id || !pharmacy_id || !items || items.length === 0 || !phone || !address) {
       return res.status(400).json({ message: "Missing data" });
     }
 
@@ -29,14 +29,10 @@ export const createOrder = async (req, res) => {
       const stock = Number(rows[0].Quantity);
       const quantity = Number(item.quantity);
 
-      // check valid numbers
       if (isNaN(price) || isNaN(quantity)) {
-        return res.status(400).json({
-          message: "Invalid data"
-        });
+        return res.status(400).json({ message: "Invalid data" });
       }
 
-      // ✅ check stock
       if (stock < quantity) {
         return res.status(400).json({
           message: `Not enough stock for medicine ${item.medicine_id}`
@@ -52,44 +48,65 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // 2️⃣ إنشاء order
+    // 2️⃣ إنشاء order + إضافة phone & address
     const [orderResult] = await db.promise().query(
-      "INSERT INTO orders (UserId, PharmacyId, TotalPrice, OrderStatus) VALUES (?, ?, ?, 'Pending')",
-      [user_id, pharmacy_id, totalPrice]
+      `INSERT INTO orders 
+      (UserId, PharmacyId, TotalPrice, OrderStatus, UserPhone, UserAddress) 
+      VALUES (?, ?, ?, 'Pending', ?, ?)`,
+      [user_id, pharmacy_id, totalPrice, phone, address]
     );
 
     const orderId = orderResult.insertId;
 
     // 3️⃣ حفظ التفاصيل + تحديث المخزون
     for (const item of itemsData) {
-
-      // order details
       await db.promise().query(
         "INSERT INTO orderdetails (OrderId, MedicineId, Quantity, Price) VALUES (?, ?, ?, ?)",
         [orderId, item.medicine_id, item.quantity, item.price]
       );
 
-      // ✅ update stock
       await db.promise().query(
         "UPDATE pharmacymedicine SET Quantity = Quantity - ? WHERE PharmacyId = ? AND MedicineId = ?",
         [item.quantity, pharmacy_id, item.medicine_id]
       );
     }
 
-    res.json({
+    // 4️⃣ رجّع تفاصيل الأوردر
+    const [orderDetails] = await db.promise().query(
+      `
+      SELECT 
+        m.Name AS medicine_name,
+        od.Quantity,
+        od.Price,
+        (od.Quantity * od.Price) AS total_item_price
+      FROM orders o
+      JOIN orderdetails od ON o.Id = od.OrderId
+      JOIN medicine m ON m.Id = od.MedicineId
+      WHERE o.Id = ?
+      `,
+      [orderId]
+    );
+
+    return res.status(201).json({
       message: "Order created successfully",
-      totalPrice
+      order: {
+        orderId,
+        totalPrice,
+        phone,
+        address,
+        items: orderDetails
+      }
     });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 // ---------------------get order by id-------------------------------------------------------
 
 export const getOrderById = async (req, res) => {
-  const { user_id } = req.body;
+  const { user_id } = req.params;
 
   try {
     const [rows] = await db.promise().query(`
@@ -154,7 +171,7 @@ export const getOrderById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-// ---------------------get all order-------------------------------------------------------
+// ---------------------get all order------------------------------------------------------- 
 export const getOrders = async (req, res) => {
   try {
     const [rows] = await db.promise().query(`
@@ -237,14 +254,13 @@ export const cancelOrder = async (req, res) => {
       );
     }
 
-    // 3️⃣ غير الحالة بس
     await db.promise().query(
       "UPDATE orders SET OrderStatus = 'Cancelled' WHERE Id = ?",
       [orderId]
     );
 
     res.json({
-      message: "Order cancelled successfully (soft delete)"
+      message: "Order cancelled successfully"
     });
 
   } catch (error) {
@@ -322,7 +338,6 @@ export const editOrder = async (req, res) => {
     const pharmacy_id = orderRows[0].PharmacyId;
     const status = orderRows[0].OrderStatus;
 
-    // ❌ منع التعديل لو مش Pending
     if (status !== "Pending") {
       throw new Error("Cannot edit this order");
     }
@@ -342,7 +357,6 @@ export const editOrder = async (req, res) => {
       );
     }
 
-    // 3️⃣ امسح orderdetails القديمة
     await connection.query(
       "DELETE FROM orderdetails WHERE OrderId = ?",
       [orderId]
@@ -420,3 +434,4 @@ export const editOrder = async (req, res) => {
   }
 }; 
 
+  

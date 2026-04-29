@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { db } from "../../config/database.js";
-
+import jwt from "jsonwebtoken";
 
 
 // -----------------------------user register-------------------------------------------------
@@ -79,42 +79,59 @@ export const userRegister = (req, res) => {
 
 };
 // --------------------------------user login-------------------------------------------------
-export const userLogin = (req,res)=>{
-  const {email , password} = req.body
-  
-  if ( !email || !password) {
+export const userLogin = (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
     return res.status(400).json({
       message: "All fields are required"
     });
   }
 
-  const checkQuery = "SELECT * FROM users WHERE email = ?";
+  const checkQuery = "SELECT * FROM users WHERE Email = ?";
 
-  db.query(checkQuery,[email],async (err,result)=>{
+  db.query(checkQuery, [email], async (err, result) => {
     if (err) {
-      console.log(err)
-      return res.status(500).json({message : "server error"})
+      console.log(err);
+      return res.status(500).json({ message: "server error" });
     }
-    if(result.length===0){
-    return  res.status(404).json({message : "user dosen't exists"})
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "user doesn't exist" });
     }
-  const user = result[0]
-  const isMatch = await bcrypt.compare(password,user.Password)
-  if(!isMatch){
-    return res.status(400).json({message : "invalid password"})
-  }
-  res.status(201).json({message : "successful login ", user: {
+    const user = result[0];
+
+    const isMatch = await bcrypt.compare(password, user.Password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "invalid password" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.Id,
+        email: user.Email,
+        role: "user"
+      },
+      process.env.JWT_SECRET, 
+      {
+        expiresIn: "7d"
+      }
+    );
+
+    return res.status(200).json({
+      message: "successful login",
+      token, // 👈 ده اللي انت عايزه
+      user: {
         id: user.Id,
         email: user.Email,
         name: user.Name,
-        role : "user"
-      }})
-
-  })
-
-}
+        role: "user"
+      }
+    });
+  });
+};
 //--------------------------------pharmecy register-------------------------------------------
-export const pharmecyRegister =  (req, res) => {
+export const pharmacyRegister =  (req, res) => {
 
   const { name, email, phone , location, password ,confirmPassword} = req.body;
 
@@ -188,37 +205,56 @@ export const pharmecyRegister =  (req, res) => {
 
 };
 // -------------------------------phermecy login----------------------------------------------
-export const pharmecyLogin = (req,res)=>{
-  const {email , password} = req.body
-  
-  if ( !email || !password) {
+export const pharmacyLogin = (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
     return res.status(400).json({
       message: "All fields are required"
     });
   }
 
-  const checkQuery = "SELECT * FROM pharmacy WHERE email = ? ";
+  const checkQuery = "SELECT * FROM pharmacy WHERE Email = ?";
 
-  db.query(checkQuery,[email],async (err,result)=>{
+  db.query(checkQuery, [email], async (err, result) => {
     if (err) {
-      console.log(err)
-      return res.status(500).json({message : "server error"})
+      console.log(err);
+      return res.status(500).json({ message: "server error" });
     }
-    if(result.length===0){
-    return  res.status(404).json({message : "pharmacy dosen't exists"})
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "pharmacy doesn't exist" });
     }
-  const user = result[0]
-  const isMatch = await bcrypt.compare(password,user.Password)
-  if(!isMatch){
-    return res.status(400).json({message : "invalid password"})
-  }
-  res.status(201).json({message : "successful login ", user: {
+
+    const user = result[0];
+
+    const isMatch = await bcrypt.compare(password, user.Password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "invalid password" });
+    }
+
+    // ✅ إنشاء التوكن
+    const token = jwt.sign(
+      {
+        id: user.Id,
+        email: user.Email,
+        role: "pharmacy"
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d"
+      }
+    );
+
+    return res.status(200).json({
+      message: "successful login",
+      token,
+      user: {
         id: user.Id,
         email: user.Email,
         name: user.Name,
-        role : "pharmacy"
-      }})
-
-  })
-
-}
+        role: "pharmacy"
+      }
+    });
+  });
+};

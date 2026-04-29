@@ -5,11 +5,7 @@ const router = Router()
 
 router.post("/orders", order.createOrder );
 
-
-// router.get("/orders",order.getOrders );
-
-
-router.get("/get_orders" , order.getOrderById );
+router.get("/get_orders/:user_id" , order.getOrderById );
 
 router.delete("/orders/:id", order.cancelOrder );
 

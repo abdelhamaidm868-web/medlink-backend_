@@ -19,14 +19,15 @@ router.get("/search_medicine",phar_router.search_medicine );
 
 
 
-router.post("/add_medicine", phar_router.addMedicineToPharmacy );
-router.post("/addNewMedicine", phar_router.addNewMedicine  );
+router.post("/medicine", phar_router.addMedicineToPharmacy );
+router.post("/newMedicine", phar_router.addNewMedicine  );
 
-router.put("/profile_update",phar_router.updatePharmacy );
-router.get("/get_PharmacyOrders", phar_router.getPharmacyOrders );
+router.put("/update_profile",phar_router.updatePharmacy );
+router.get("/PharmacyOrders", phar_router.getPharmacyOrders );
 
 router.get("/profile",phar_router.profile_pharmcy)
 
 export default router
-
+ 
 ///////////////////////////////////////////////////////////////////
+  
