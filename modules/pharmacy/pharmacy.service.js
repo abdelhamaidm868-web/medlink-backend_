@@ -424,7 +424,7 @@ export const deletemedicine = (req, res) => {
   ////////////////////////////////////////////////////////////////////////////
 
   export const getall_medicine = (req, res) => {
-  const { pharmacy_id } = req.body;
+  const { pharmacy_id } = req.params;
 
   const query = `
     SELECT 
@@ -471,9 +471,31 @@ export const search_medicine =(req, res) => {
   const { pharmacy_id  } = req.body;
   const {input} = req.query
 
-  const query = `
-   SELECT medicine.Name, medicine.Category, medicine.Description, pharmacymedicine.Price, pharmacymedicine.Quantity, pharmacymedicine.ExpiryDate FROM medicine JOIN pharmacymedicine ON medicine.Id = pharmacymedicine.MedicineId WHERE pharmacymedicine.PharmacyId = ? and medicine.Name LIKE ? ;
-  `;
+ const query = `
+SELECT 
+  medicine.Name,
+  medicine.Id as medicine_id,
+  medicine.Category,
+  medicine.Description,
+  pharmacymedicine.Price,
+  pharmacymedicine.Quantity,
+  pharmacymedicine.ExpiryDate,
+
+  COUNT(comment.Id) AS comments_count
+
+FROM medicine 
+
+JOIN pharmacymedicine 
+  ON medicine.Id = pharmacymedicine.MedicineId
+
+LEFT JOIN comment 
+  ON pharmacymedicine.PharmacyId = comment.Pharmacy_id
+
+WHERE pharmacymedicine.PharmacyId = ? 
+  AND medicine.Name LIKE ?
+
+GROUP BY medicine.Id;
+`;
 
   const values = [pharmacy_id , `%${input}%`];
 

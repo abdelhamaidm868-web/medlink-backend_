@@ -10,7 +10,7 @@ router.delete("/del_medicine", phar_router.deletemedicine );
 ////////////////////////////////////////////////
 
 
-router.get("/getall_medcine", phar_router.getall_medicine );
+router.get("/getall_medcine/:pharmacy_id", phar_router.getall_medicine );
 /////////////////////////////////////////////////////
 
 router.get("/search_medicine",phar_router.search_medicine );
