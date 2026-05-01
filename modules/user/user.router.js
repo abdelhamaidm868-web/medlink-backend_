@@ -3,7 +3,7 @@ import * as user from "./user.service.js"
 
 const router = Router();
 
-router.get("/get_profile", user.get_profile);
+router.get("/get_profile/:id_user", user.get_profile);
 
 router.put("/update_profile", user.update_profile);
 
@@ -22,9 +22,9 @@ router.post("/medicine/:id", user.add_medicine);
 
 router.delete("/medicine/:id", user.del_medicine);
 
-router.get("/medicine" , user.get_medicine_user )
+router.get("/medicine/:user_id" , user.get_medicine_user )
 
-router.get("/disease" , user.get_desise_user )
+router.get("/disease/:user_id" , user.get_desise_user )
 
 router.post("/disease" , user.add_disease)
 

@@ -291,7 +291,7 @@ export const updatePharmacy = async (req, res) => {
 // --------------------------------pharmacy orders----------------------------------
 
 export const getPharmacyOrders = (req, res) => {
-  const { pharmacyId } = req.body;
+  const { pharmacyId } = req.params;
 
   if (!pharmacyId) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
@@ -327,7 +327,6 @@ export const getPharmacyOrders = (req, res) => {
         return res.status(500).json({ message: "Server error" });
       }
 
-      // ترتيب النتائج لتجميع الأدوية لكل طلب
       const result = {};
       orders.forEach(row => {
         if (!result[row.orderId]) {
@@ -465,10 +464,10 @@ export const deletemedicine = (req, res) => {
   });
 }
 
-/////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////// 
 
 export const search_medicine =(req, res) => {
-  const { pharmacy_id  } = req.body;
+  const { pharmacy_id  } = req.params;
   const {input} = req.query
 
  const query = `
@@ -498,7 +497,7 @@ GROUP BY medicine.Id;
 `;
 
   const values = [pharmacy_id , `%${input}%`];
-
+ 
   db.execute(query, values, (error, result) => {
     if (error) return res.json({ msg: error.message });
 
@@ -526,7 +525,7 @@ GROUP BY medicine.Id;
 /////////////////////////////////////////////////////////////////////
 
 export const profile_pharmcy = (req, res) => {
-  const { pharmacy_id } = req.body;
+  const { pharmacy_id } = req.params;
 
   if (!pharmacy_id) {
     return res.status(400).json({ message: "Pharmacy ID is required" });

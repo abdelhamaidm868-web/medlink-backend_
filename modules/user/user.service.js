@@ -3,7 +3,7 @@ import { db } from "../../config/database.js";
 import bcrypt from "bcrypt";
 //////////////////////////////////////////////////////////////////////////////
 export const get_profile = (req, res) => {
-  const { id_user } = req.body;
+  const { id_user } = req.params;
   const values = [id_user];
   const query_check_find_user =
     "SELECT Name, Email, Phone, Location, ProfileImagePath FROM users WHERE id = ?";
@@ -145,7 +145,7 @@ export const add_medicine = (req, res) => {
 
 //////////////////////////////////////////////////////////////////
 export const get_medicine_user = (req, res) => {
-  const { user_id } = req.body;
+  const { user_id } = req.params;
 
   const query = `select usermedicine.start_date, usermedicine.start_date ,usermedicine.duration_days , usermedicine.end_date , usermedicine.status, medicine.Name , medicine.Manufacturer , medicine.Category , medicine.Description  from usermedicine 
 JOIN medicine
@@ -204,7 +204,7 @@ export const update_status_medicine = (req, res) => {
 
 //////////////////////////////////////////////////////////////////
 export const get_desise_user = (req, res) => {
-  const { user_id } = req.body;
+  const { user_id } = req.params;
 
   const query = `SELECT userdiseases.UserId , diseases.Name , userdiseases.DiseaseId 
 from userdiseases JOIN diseases 
@@ -405,26 +405,39 @@ export const home_search = (req, res) => {
   }
 
   const query = `
-    SELECT 
-      medicine.Name,
-      medicine.Id as medicine_id,
-      medicine.Manufacturer,
-      medicine.Category,
-      medicine.Description,
-      pharmacymedicine.Price,
-      pharmacymedicine.Quantity,
-      pharmacy.Name as pharmacy_name,
-      pharmacy.Location,
-      pharmacy.Id as pharmcy_id,
-      pharmacy.Phone as pharmcy_phone,
-      pharmacy.Rate
-    FROM medicine
-    JOIN pharmacymedicine
-      ON pharmacymedicine.MedicineId = medicine.Id
-    JOIN pharmacy
-      ON pharmacy.Id = pharmacymedicine.PharmacyId
-    WHERE medicine.Name LIKE ?
-  `;
+  SELECT 
+    medicine.Name,
+    medicine.Id as medicine_id,
+    medicine.Manufacturer,
+    medicine.Category,
+    medicine.Description,
+    pharmacymedicine.Price,
+    pharmacymedicine.Quantity,
+    pharmacy.Name as pharmacy_name,
+    pharmacy.Location,
+    pharmacy.Id as pharmcy_id,
+    pharmacy.Phone as pharmcy_phone,
+    pharmacy.Rate,
+
+    COUNT(comment.Id) as comments_count
+
+  FROM medicine
+
+  JOIN pharmacymedicine
+    ON pharmacymedicine.MedicineId = medicine.Id
+
+  JOIN pharmacy
+    ON pharmacy.Id = pharmacymedicine.PharmacyId
+
+  LEFT JOIN comment
+    ON comment.Pharmacy_id = pharmacy.Id
+
+  WHERE medicine.Name LIKE ?
+
+  GROUP BY 
+    medicine.Id,
+    pharmacy.Id
+`;
 
   const values = [`%${input}%`];
 
