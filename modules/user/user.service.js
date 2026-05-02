@@ -116,7 +116,6 @@ export const add_medicine = (req, res) => {
           .json({ msg: "This medicine is already in your profile" });
       }
 
-    
       const query = `
         INSERT INTO usermedicine 
         (MedicineId, UserID, start_date, duration_days, end_date)
@@ -147,7 +146,7 @@ export const add_medicine = (req, res) => {
 export const get_medicine_user = (req, res) => {
   const { user_id } = req.params;
 
-  const query = `select usermedicine.start_date, usermedicine.start_date ,usermedicine.duration_days , usermedicine.end_date , usermedicine.status, medicine.Name , medicine.Manufacturer , medicine.Category , medicine.Description  from usermedicine 
+  const query = `select usermedicine.MedicineId , usermedicine.start_date ,usermedicine.start_date ,usermedicine.duration_days , usermedicine.end_date , usermedicine.status, medicine.Name , medicine.Manufacturer , medicine.Category , medicine.Description  from usermedicine 
 JOIN medicine
 ON usermedicine.MedicineId = medicine.Id
 WHERE usermedicine.UserID = ?;`;
@@ -160,7 +159,7 @@ WHERE usermedicine.UserID = ?;`;
     if (result.length != 0) {
       return res.status(200).json({ message: "medicine Data", data: result });
     } else {
-     return res.status(404).json({ message: "medicine  not exist" });
+      return res.status(404).json({ message: "medicine  not exist" });
     }
   });
 };
@@ -200,7 +199,7 @@ export const update_status_medicine = (req, res) => {
       msg: "medicine status updated successfully",
     });
   });
-}; 
+};
 
 //////////////////////////////////////////////////////////////////
 export const get_desise_user = (req, res) => {
@@ -222,7 +221,7 @@ WHERE userdiseases.UserId=?`;
       res.status(404).json({ message: "medicine  not exist" });
     }
   });
-}; 
+};
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -371,7 +370,7 @@ export const del_medicine = (req, res) => {
     res.status(401).json({ msg: "Don't have access to user medicine" });
   }
 };
- 
+
 export const home_getall_medicine = (req, res) => {
   const query = `
     SELECT 
@@ -526,5 +525,3 @@ export const deleteComment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
