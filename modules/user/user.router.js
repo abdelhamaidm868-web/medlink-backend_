@@ -1,9 +1,9 @@
 import { Router } from "express";
 import * as user from "./user.service.js"
-
+import auth from "../../middleware/auth.middleware.js"
 const router = Router();
 
-router.get("/get_profile/:id_user", user.get_profile);
+router.get("/get_profile", auth ,user.get_profile);
 
 router.put("/update_profile", user.update_profile);
 

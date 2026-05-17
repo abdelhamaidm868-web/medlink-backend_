@@ -3,7 +3,8 @@ import cors from "cors";
 import {db , DBconnection}  from "./config/database.js";
 
 
-import auth_router from "./middleware/auth/auth.router.js"
+import auth_user_router from "./modules/auth/user_auth/auth_user.router.js"
+import auth_pharmacy_router from "./modules/auth/pharmacy_auth/auth_pharmacy.router.js"
 import user_router from "./modules/user/user.router.js"
 import order_router from "./modules/order/order.router.js"
 import pharmacy_router from "./modules/pharmacy/pharmacy.router.js"
@@ -18,7 +19,8 @@ app.use(express.json());
 app.use(cors());
 
 ///////////////////////////////////////////
-app.use("/auth" , auth_router)
+app.use("/auth/user" , auth_user_router)
+app.use("/auth/pharmacy" ,auth_pharmacy_router)
 app.use("/order" , order_router)
 app.use("/user" , user_router)
 app.use ("/pharmacy" , pharmacy_router)

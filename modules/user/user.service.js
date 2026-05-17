@@ -3,19 +3,11 @@ import { db } from "../../config/database.js";
 import bcrypt from "bcrypt";
 //////////////////////////////////////////////////////////////////////////////
 export const get_profile = (req, res) => {
-  const { id_user } = req.params;
-  const values = [id_user];
-  const query_check_find_user =
-    "SELECT Name, Email, Phone, Location, ProfileImagePath FROM users WHERE id = ?";
+  const { user_data } = req;
+ if (!user_data)
+  return res.status(500).json({msg:"error in server"})
 
-  db.execute(query_check_find_user, values, (error, result) => {
-    if (error) return res.status(500).json({ msg: error.message });
-    if (result.length != 0) {
-      res.status(200).json({ message: "User Data", data: result });
-    } else {
-      res.status(404).json({ message: "User not found" });
-    }
-  });
+ res.status(200).json({sucess:true , msg:"success done" , data :user_data})
 };
 
 //////////////////////////////////////////////////////////////////
