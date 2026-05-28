@@ -24,7 +24,7 @@ const auth_middleware = async (req, res, next) => {
 
     const query = `
       SELECT id, Name, Email, Phone, Location, ProfileImagePath
-      FROM users
+      FROM pharmacy
       WHERE id = ?
     `;
 
@@ -39,25 +39,25 @@ const auth_middleware = async (req, res, next) => {
     });
 
 
-    let user = null;
+    let pharmacy = null;
 
     // بما أننا استخدمنا Promise محلي، result ستكون هي البيانات الفعلية مباشرة
     if (Array.isArray(result) && result.length > 0) {
-      user = result[0];
+      pharmacy = result[0];
     } else if (!Array.isArray(result) && result) {
-      user = result; // في حال كانت المكتبة ترجع كائن مباشرة
+      pharmacy = result; // في حال كانت المكتبة ترجع كائن مباشرة
     }
 
 
 
-    if (!user) {
+    if (!pharmacy) {
       return res.status(404).json({
-        msg: "User not found"
+        msg: "pharmacy not found"
       });
     }
 
     // حفظ البيانات في الطلب
-    req.user_data = user;
+    req.pharmacy_data = pharmacy;
 
     next();
 

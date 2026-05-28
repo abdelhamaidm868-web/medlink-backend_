@@ -1,12 +1,15 @@
 import bcrypt from "bcrypt";
-import { db } from "../../config/database.js";
+import { db } from "../../../config/database.js";
+import sendEmail from "../../../util/email/send_email.js";
+import {html} from "../../../util/email/page_email.js"
 import jwt from "jsonwebtoken";
 
 
 // -----------------------------user register-------------------------------------------------
 export const userRegister = (req, res) => {
 
-  const { name, email,phone ,location, password, confirmPassword  } = req.body;
+try {
+    const { name, email,phone ,location, password, confirmPassword  } = req.body;
 
   if (!name || !email || !phone || !location || !password || !confirmPassword ) {
     return res.status(400).json({
@@ -22,22 +25,16 @@ export const userRegister = (req, res) => {
   const checkQuery = "SELECT * FROM users WHERE email = ?";
 
   db.execute(checkQuery, [email], async (err, results) => {
- 
-    if (err) {
-      console.log(err);
-      return res.status(500).json({
-        message: "Server error"
-      });
-    }
-
-    if (results.length > 0 ) {
-      return res.status(400).json({
-        message: "Email already exists"
-      });
-    }
 
     
+    
     try {
+      
+          if (results.length > 0 ) {
+            return res.status(400).json({
+              message: "Email already exists"
+            });
+          }
 
 
 
@@ -58,9 +55,12 @@ export const userRegister = (req, res) => {
             });
           }
 
+ const token = jwt.sign({ email }, process.env.JWT_SECRET);
+const send = sendEmail({to:email , html: html(`http://localhost:4000/auth/user/acctivate/${token}`)})
+
+
           res.status(201).json({
-            message: "User registered successfully",
-            userId: result.insertId
+            message: "Please confirm email "
           });
 
         }
@@ -76,6 +76,9 @@ export const userRegister = (req, res) => {
     }
 
   });
+} catch (error) {
+  res.status(500).json({sucess:false , error : error.message})
+}
 
 };
 // --------------------------------user login-------------------------------------------------
@@ -129,3 +132,19 @@ export const userLogin = (req, res) => {
     
   }
 };
+
+// --------------------------------user acctivate-------------------------------------------------
+
+export const acctivate = (req,res)=>{
+try {
+  
+const {token} = req.params 
+
+const payload = jwt.verify(token , process.env.JWT_SECRET)
+
+return res.status(200).json({msg:"email is acctivate" , eml:payload.email})
+} catch (error) {
+  res.status(500).json({sucess:false , errro : error.message , stack :error.stack})
+}
+
+}

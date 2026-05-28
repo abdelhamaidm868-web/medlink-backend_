@@ -16,7 +16,7 @@ const info =  await transport.sendMail({
     from: "abdulrahmen1.lap@gmail.com" , 
     to  , 
     subject:"welcome to verifiy",
-    text:"WELCOEME to saraha app",
+    text:"WELCOEME to Medlink app",
     html
      
 

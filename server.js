@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv"
 import {db , DBconnection}  from "./config/database.js";
 
 
@@ -12,7 +13,7 @@ import pharmacy_router from "./modules/pharmacy/pharmacy.router.js"
 
 
 await DBconnection()
-
+dotenv.config()
 const app = express();
 
 app.use(express.json());

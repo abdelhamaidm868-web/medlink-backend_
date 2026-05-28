@@ -3,18 +3,26 @@ import { db } from "../../config/database.js";
 import bcrypt from "bcrypt";
 //////////////////////////////////////////////////////////////////////////////
 export const get_profile = (req, res) => {
-  const { user_data } = req;
+try {
+  
+    const { user_data } = req;
+    console.log(user_data);
+    
  if (!user_data)
-  return res.status(500).json({msg:"error in server"})
+  return res.status(500).json({msg:"error in server to get user data"})
 
  res.status(200).json({sucess:true , msg:"success done" , data :user_data})
+} catch (error) {
+  res.status(500).json({sucess:false , msg:error.message})
+}
 };
 
 //////////////////////////////////////////////////////////////////
 export const update_profile = async (req, res) => {
   try {
+
+    const {user_data} = req 
     const {
-      id_user,
       name,
       email,
       password,
@@ -23,12 +31,8 @@ export const update_profile = async (req, res) => {
       ProfileImagePath,
     } = req.body;
 
-    if (!id_user) {
-      return res.status(400).json({ msg: "id_user is required" });
-    }
-
     let fields = [];
-    let values = [];
+  
 
     if (name) {
       fields.push("Name = ?");
@@ -72,7 +76,8 @@ export const update_profile = async (req, res) => {
       WHERE id = ?
     `;
 
-    values.push(id_user);
+   
+const values =[user_data.id]
 
     db.execute(query, values, (error, result) => {
       if (error) return res.status(500).json({ msg: error.message });
@@ -82,6 +87,8 @@ export const update_profile = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+///extra update
 
 //////////////////////////////////////////////////////////////////
 

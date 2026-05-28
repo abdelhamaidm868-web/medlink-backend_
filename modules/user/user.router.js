@@ -5,9 +5,9 @@ const router = Router();
 
 router.get("/get_profile", auth ,user.get_profile);
 
-router.put("/update_profile", user.update_profile);
+router.put("/update_profile",auth, user.update_profile);
 
-
+///
 router.get("/home/getall_medicine", user.home_getall_medicine)
 
 router.get("/home/search", user.home_search)
