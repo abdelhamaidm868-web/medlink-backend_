@@ -4,7 +4,7 @@ const router = Router()
 // Pharmacy 
 router.post("/login", auth.pharmacyLogin );
 router.post("/register", auth.pharmacyRegister );
-
+router.get("/acctivate/:token" ,auth.acctivate )
 
 
 export default router;

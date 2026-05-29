@@ -1,5 +1,7 @@
 import bcrypt from "bcrypt";
 import { db } from "../../../config/database.js";
+import {html} from "../../../util/email/page_email.js"
+import sendEmail from "../../../util/email/send_email.js";
 import jwt from "jsonwebtoken";
 
 
@@ -58,10 +60,15 @@ export const pharmacyRegister =  (req, res) => {
             });
           }
 
+         
+ const token = jwt.sign({ email }, process.env.JWT_SECRET);
+const send = sendEmail({to:email , html: html(`http://localhost:4000/auth/pharmacy/acctivate/${token}`)})
+
+
           res.status(201).json({
-            message: "User registered successfully",
-            userId: result.insertId
+            message: "Please confirm email "
           });
+
 
         }
       );
@@ -132,3 +139,20 @@ export const pharmacyLogin = (req, res) => {
     });
   });
 };
+// -------------------------------phermecy acctivate----------------------------------------------
+
+
+
+export const acctivate = (req,res)=>{
+try {
+  
+const {token} = req.params 
+
+const payload = jwt.verify(token , process.env.JWT_SECRET)
+
+return res.status(200).json({msg:"email is acctivate" , eml:payload.email})
+} catch (error) {
+  res.status(500).json({sucess:false , errro : error.message , stack :error.stack})
+}
+
+}

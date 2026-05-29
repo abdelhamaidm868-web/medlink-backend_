@@ -288,74 +288,7 @@ export const updatePharmacy = async (req, res) => {
     }
   });
 };
-// --------------------------------pharmacy orders----------------------------------
 
-export const getPharmacyOrders = (req, res) => {
-  const { pharmacyId } = req.params;
-
-  if (!pharmacyId) {
-    return res.status(400).json({ message: "Pharmacy ID is required" });
-  }
-
-  const checkPharmacy = "SELECT * FROM pharmacy WHERE Id = ?";
-  db.execute(checkPharmacy, [pharmacyId], (err, pharmacyResult) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Server error" });
-    }
-
-    if (pharmacyResult.length === 0) {
-      return res.status(404).json({ message: "Pharmacy not found" });
-    }
-
-    // جلب الطلبات مع تفاصيل المستخدم والأدوية
-    const ordersQuery = `
-      SELECT o.Id as orderId, o.OrderDate, o.OrderStatus, o.TotalPrice,
-             u.Id as userId, u.Name as userName, u.Email as userEmail,
-             m.Id as medicineId, m.Name as medicineName, od.Quantity, od.Price
-      FROM orders o
-      JOIN users u ON o.UserId = u.Id
-      JOIN orderdetails od ON od.OrderId = o.Id
-      JOIN medicine m ON od.MedicineId = m.Id
-      WHERE o.PharmacyId = ?
-      ORDER BY o.OrderDate DESC
-    `;
-
-    db.execute(ordersQuery, [pharmacyId], (err, orders) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      const result = {};
-      orders.forEach(row => {
-        if (!result[row.orderId]) {
-          result[row.orderId] = {
-            orderId: row.orderId,
-            orderDate: row.OrderDate,
-            orderStatus: row.OrderStatus,
-            totalPrice: row.TotalPrice,
-            user: {
-              id: row.userId,
-              name: row.userName,
-              email: row.userEmail
-            },
-            medicines: []
-          };
-        }
-
-        result[row.orderId].medicines.push({
-          id: row.medicineId,
-          name: row.medicineName,
-          quantity: row.Quantity,
-          price: row.Price
-        });
-      });
-
-      res.json(Object.values(result));
-    });
-  });
-};
 
 // -------------------------------------------------------------------------------------
 

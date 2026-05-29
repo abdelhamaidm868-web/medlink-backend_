@@ -23,9 +23,13 @@ router.post("/medicine", phar_router.addMedicineToPharmacy );
 router.post("/newMedicine", phar_router.addNewMedicine  );
 
 router.put("/update_profile",phar_router.updatePharmacy );
-router.get("/PharmacyOrders/:pharmacyId", phar_router.getPharmacyOrders );
-
 router.get("/profile/:pharmacy_id",phar_router.profile_pharmcy)
+///////////////////////////////////////
+
+
+
+
+
 
 export default router
 ///////////////////////////////////////////////////////////////////

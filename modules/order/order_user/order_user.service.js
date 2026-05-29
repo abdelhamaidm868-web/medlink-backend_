@@ -1,11 +1,13 @@
 // createOrder 
-import { db } from "../../config/database.js";
+import { db } from "../../../config/database.js";
+/////////////////////////////////////////////////////////////////////////////////////////
 // ---------------------create order-------------------------------------------------------
 export const createOrder = async (req, res) => {
-  const { user_id, pharmacy_id, items, phone, address } = req.body;
-
+  
   try {
-    if (!user_id || !pharmacy_id || !items || items.length === 0 || !phone || !address) {
+    const {user_data} = req 
+    const { pharmacy_id, items, phone, address } = req.body;
+    if (!pharmacy_id || !items || items.length === 0 || !phone || !address) {
       return res.status(400).json({ message: "Missing data" });
     }
 
@@ -53,7 +55,7 @@ export const createOrder = async (req, res) => {
       `INSERT INTO orders 
       (UserId, PharmacyId, TotalPrice, OrderStatus, UserPhone, UserAddress) 
       VALUES (?, ?, ?, 'Pending', ?, ?)`,
-      [user_id, pharmacy_id, totalPrice, phone, address]
+      [user_data.id, pharmacy_id, totalPrice, phone, address]
     );
 
     const orderId = orderResult.insertId;
@@ -64,12 +66,15 @@ export const createOrder = async (req, res) => {
         "INSERT INTO orderdetails (OrderId, MedicineId, Quantity, Price) VALUES (?, ?, ?, ?)",
         [orderId, item.medicine_id, item.quantity, item.price]
       );
-
-      await db.promise().query(
-        "UPDATE pharmacymedicine SET Quantity = Quantity - ? WHERE PharmacyId = ? AND MedicineId = ?",
-        [item.quantity, pharmacy_id, item.medicine_id]
-      );
     }
+    
+    // حتة الخصم من المخزن 
+    // for (const item of itemsData) {
+    //   await db.promise().query(
+    //     "UPDATE pharmacymedicine SET Quantity = Quantity - ? WHERE PharmacyId = ? AND MedicineId = ?",
+    //     [item.quantity, pharmacy_id, item.medicine_id]
+    //   );
+    // }
 
     // 4️⃣ رجّع تفاصيل الأوردر
     const [orderDetails] = await db.promise().query(
@@ -94,19 +99,23 @@ export const createOrder = async (req, res) => {
         totalPrice,
         phone,
         address,
-        items: orderDetails
+        items: orderDetails, 
+        user_data : user_data
       }
     });
 
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: error.message , stack:error.stack });
   }
 };
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 // ---------------------get order by id-------------------------------------------------------
 
 export const getOrderById = async (req, res) => {
-  const { user_id } = req.params;
+  const { user_data } = req;
 
   try {
     const [rows] = await db.promise().query(`
@@ -129,7 +138,7 @@ export const getOrderById = async (req, res) => {
       JOIN orderdetails od ON o.Id = od.OrderId
       JOIN medicine m ON od.MedicineId = m.Id
       WHERE o.UserId = ?;
-    `, [user_id]);
+    `, [user_data.id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ message: "No orders found for this user" });
@@ -165,92 +174,46 @@ export const getOrderById = async (req, res) => {
     res.json(Object.values(ordersMap));
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+       return res.status(500).json({ message: error.message , stack:error.stack });
+
   }
 };
-// ---------------------get all order------------------------------------------------------- 
-export const getOrders = async (req, res) => {
-  try {
-    const [rows] = await db.promise().query(`
-      SELECT 
-        o.Id AS order_id,
-        o.UserId,
-        o.PharmacyId,
-        o.TotalPrice,
-        o.OrderStatus,
-        o.OrderDate,
 
-        od.MedicineId,
-        od.Quantity,
-        od.Price,
+////////////////////////////////////////////////////////////////////////////////////////////
 
-        m.Name AS medicine_name
 
-      FROM orders o
-      JOIN orderdetails od ON o.Id = od.OrderId
-      JOIN medicine m ON od.MedicineId = m.Id
-      ORDER BY o.Id DESC
-    `);
-
-    const ordersMap = {};
-
-    for (const row of rows) {
-
-      // لو order مش موجود في الماب
-      if (!ordersMap[row.order_id]) {
-        ordersMap[row.order_id] = {
-          order_id: row.order_id,
-          user_id: row.UserId,
-          pharmacy_id: row.PharmacyId,
-          total_price: row.TotalPrice,
-          status: row.OrderStatus,
-          order_date: row.OrderDate,
-          items: []
-        };
-      }
-
-      // نضيف item
-      ordersMap[row.order_id].items.push({
-        medicine_id: row.MedicineId,
-        name: row.medicine_name,
-        quantity: row.Quantity,
-        price: row.Price
-      });
-    }
-
-    // نحولها array
-    const result = Object.values(ordersMap);
-
-    res.json(result);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+////////////////////////////////////////////////////////////////////////////////////////////
 // ---------------------cancel order -------------------------------------------------------
 export const cancelOrder = async (req, res) => {
-  const orderId = req.params.id;
-
+  
   try { 
-    // 1️⃣ هات order details
+    const {orderId} = req.body;
+  const {user_data} = req 
+
+
+  // 1️⃣ هات order details
     const [details] = await db.promise().query(
-      "SELECT MedicineId, Quantity FROM orderdetails WHERE OrderId = ?",
-      [orderId]
+      "SELECT Id , PharmacyId , OrderStatus FROM orders WHERE Id  = ? and UserId = ?",
+      [orderId , user_data.id]
     );
 
     if (details.length === 0) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // 2️⃣ رجّع stock
-    for (const item of details) {
-      await db.promise().query(
-        "UPDATE pharmacymedicine SET Quantity = Quantity + ? WHERE MedicineId = ?",
-        [item.Quantity, item.MedicineId]
-      );
+    // // 2️⃣ رجّع stock
+    // for (const item of details) {
+    //   await db.promise().query(
+    //     "UPDATE pharmacymedicine SET Quantity = Quantity + ? WHERE MedicineId = ?",
+    //     [item.Quantity, item.MedicineId]
+    //   );
+    // }
+
+
+    if (details[OrderStatus]=="Completed"){
+      return res.status(400).json({msg:"the order go to pharmacy and completed"})
     }
+
 
     await db.promise().query(
       "UPDATE orders SET OrderStatus = 'Cancelled' WHERE Id = ?",
@@ -262,61 +225,20 @@ export const cancelOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: error.message , stack:error.stack });
+
   }
 };
-// -----------------------update order statues-----------------------------------------------
-export const updateOrderStatus = async (req, res) => {
-  const orderId = req.params.id;
-  const { status } = req.body;
 
-  try {
-    // 1️⃣ هات الحالة الحالية
-    const [rows] = await db.promise().query(
-      "SELECT OrderStatus FROM orders WHERE Id = ?",
-      [orderId]
-    );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Order not found" });
-    }
 
-    const currentStatus = rows[0].OrderStatus;
 
-    // 2️⃣ rules
-    const validTransitions = {
-      Pending: ["Approved", "Rejected", "Cancelled"],
-      Approved: ["Completed", "Cancelled"],
-      Completed: [],
-      Rejected: [],
-      Cancelled: []
-    };
-
-    if (!validTransitions[currentStatus].includes(status)) {
-      return res.status(400).json({
-        message: `Cannot change status from ${currentStatus} to ${status}`
-      });
-    }
-
-    await db.promise().query(
-      "UPDATE orders SET OrderStatus = ? WHERE Id = ?",
-      [status, orderId]
-    );
-
-    res.json({
-      message: `Order status updated to ${status}`
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};  
+/////////////////////////////////////////////////////////////////////////////////////////////
 //---------------------------update order-----------------------------------------------------
 export const editOrder = async (req, res) => {
   const orderId = req.params.id;
   const { items } = req.body;
+  const {user_data} = req 
 
   const connection = db.promise();
 
