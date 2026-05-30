@@ -21,6 +21,8 @@ export const createOrder = async (req, res) => {
         [pharmacy_id, item.medicine_id]
       );
 
+      console.log(rows);
+      
       if (rows.length === 0) {
         return res.status(400).json({
           message: `Medicine ${item.medicine_id} not found`
@@ -115,9 +117,10 @@ export const createOrder = async (req, res) => {
 // ---------------------get order by id-------------------------------------------------------
 
 export const getOrderById = async (req, res) => {
-  const { user_data } = req;
-
+  
   try {
+    const { user_data } = req;
+
     const [rows] = await db.promise().query(`
       SELECT 
         o.Id AS order_id,
@@ -210,7 +213,7 @@ export const cancelOrder = async (req, res) => {
     // }
 
 
-    if (details[OrderStatus]=="Completed"){
+    if (details.OrderStatus=="Completed"){
       return res.status(400).json({msg:"the order go to pharmacy and completed"})
     }
 
@@ -236,19 +239,22 @@ export const cancelOrder = async (req, res) => {
 /////////////////////////////////////////////////////////////////////////////////////////////
 //---------------------------update order-----------------------------------------------------
 export const editOrder = async (req, res) => {
-  const orderId = req.params.id;
-  const { items } = req.body;
-  const {user_data} = req 
-
+  
   const connection = db.promise();
-
+  
   try {
+
+    const { items ,orderId } = req.body;
+    const {user_data} = req 
+  
+
+
     await connection.query("START TRANSACTION");
 
     // 1️⃣ هات بيانات الأوردر
     const [orderRows] = await connection.query(
-      "SELECT PharmacyId, OrderStatus FROM orders WHERE Id = ?",
-      [orderId]
+      "SELECT PharmacyId, OrderStatus FROM orders WHERE Id = ? and UserId = ?",
+      [orderId , user_data.id]
     );
 
     if (orderRows.length === 0) {
@@ -259,23 +265,23 @@ export const editOrder = async (req, res) => {
     const status = orderRows[0].OrderStatus;
 
     if (status !== "Pending") {
-      throw new Error("Cannot edit this order");
+      throw new Error("Cannot edit this order the permission End");
     }
 
-    // 2️⃣ رجّع stock القديم
-    const [oldItems] = await connection.query(
-      "SELECT MedicineId, Quantity FROM orderdetails WHERE OrderId = ?",
-      [orderId]
-    );
+    // // 2️⃣ رجّع stock القديم
+    // const [oldItems] = await connection.query(
+    //   "SELECT MedicineId, Quantity FROM orderdetails WHERE OrderId = ?",
+    //   [orderId]
+    // );
 
-    for (const item of oldItems) {
-      await connection.query(
-        `UPDATE pharmacymedicine 
-         SET Quantity = Quantity + ? 
-         WHERE PharmacyId = ? AND MedicineId = ?`,
-        [item.Quantity, pharmacy_id, item.MedicineId]
-      );
-    }
+    // for (const item of oldItems) {
+    //   await connection.query(
+    //     `UPDATE pharmacymedicine 
+    //      SET Quantity = Quantity + ? 
+    //      WHERE PharmacyId = ? AND MedicineId = ?`,
+    //     [item.Quantity, pharmacy_id, item.MedicineId]
+    //   );
+    // }
 
     await connection.query(
       "DELETE FROM orderdetails WHERE OrderId = ?",
@@ -322,14 +328,17 @@ export const editOrder = async (req, res) => {
          VALUES (?, ?, ?, ?)`,
         [orderId, item.medicine_id, item.quantity, item.price]
       );
-
-      await connection.query(
-        `UPDATE pharmacymedicine 
-         SET Quantity = Quantity - ? 
-         WHERE PharmacyId = ? AND MedicineId = ?`,
-        [item.quantity, pharmacy_id, item.medicine_id]
-      );
     }
+
+    // for (const item of itemsData) {
+
+    //   await connection.query(
+    //     `UPDATE pharmacymedicine 
+    //      SET Quantity = Quantity - ? 
+    //      WHERE PharmacyId = ? AND MedicineId = ?`,
+    //     [item.quantity, pharmacy_id, item.medicine_id]
+    //   );
+    // }
 
     // 6️⃣ update total price
     await connection.query(
@@ -341,15 +350,18 @@ export const editOrder = async (req, res) => {
 
     res.json({
       message: "Order updated successfully",
-      totalPrice
+      new_order : itemsData ,
+      totalPrice 
     });
 
   } catch (error) {
+
     await connection.query("ROLLBACK");
     console.error(error);
 
     res.status(500).json({
-      message: error.message
+      message: error.message , 
+      stack :error.stack
     });
   }
 }; 

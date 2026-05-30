@@ -10,7 +10,7 @@ router.get("/get_orders" , auth , order.getOrderById );
 
 router.delete("/cancel_orders", auth ,order.cancelOrder );
 
-router.put("/edit_orders/:id/",order.editOrder );
+router.put("/edit_orders" ,auth,order.editOrder );
 
 
 

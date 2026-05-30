@@ -23,7 +23,7 @@ const auth_middleware = async (req, res, next) => {
     );
 
     const query = `
-      SELECT id, Name, Email, Phone, Location, ProfileImagePath
+      SELECT id, Name, Email, Phone, Location
       FROM pharmacy
       WHERE id = ?
     `;

@@ -24,7 +24,7 @@ app.use(cors());
 app.use("/auth/user" , auth_user_router)
 app.use("/auth/pharmacy" ,auth_pharmacy_router)
 app.use("/user/order" , order_router_user)
-app.use("/pharmacy/order" , order_router_pharmacy)
+app.use("/pharmacy/Mangeorder" , order_router_pharmacy)
 app.use("/user" , user_router)
 app.use ("/pharmacy" , pharmacy_router)
 //////////////////////////////////////////
