@@ -4,7 +4,10 @@ import auth_pharmacy from "../../../middleware/auth_middleware_pharamcy.js"
 const router = Router()
 
 
-
+router.get("/orders",auth_pharmacy,phar_router.getAllOrders)
+router.get("/pendingOrders",auth_pharmacy,phar_router.getPendingOrders)
+router.patch("/updateStatus/:orderId",auth_pharmacy,phar_router.updateOrderStatus)
+router.get("/dashboard",auth_pharmacy,phar_router.getDashboard)
 // router.get("/PharmacyOrders/:pharmacyId", phar_router.getPharmacyOrders );
 
 

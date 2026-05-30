@@ -2,9 +2,11 @@ import bcrypt from "bcrypt";
 import { db } from "../../config/database.js";
 
 
-// ------------------------------- Add Medicine to Pharmacy ------------------ --------------
+// ------------------------------- Add Medicine to Pharmacy --------------------------------
 export const addMedicineToPharmacy = (req, res) => {
-  const { pharmacyId, medicineId, price, quantity, expiryDate } = req.body;
+  
+  const pharmacyId = req.pharmacy_data.id;
+  const {medicineId, price, quantity, expiryDate } = req.body;
 
   if (!pharmacyId || !medicineId || !price || !quantity || !expiryDate) {
     return res.status(400).json({ message: "All fields are required" });
@@ -88,8 +90,8 @@ export const addMedicineToPharmacy = (req, res) => {
 };
 
 export const addNewMedicine = (req, res) => {
+  const pharmacyId = req.pharmacy_data.id;
   let {
-    pharmacyId,
     name,
     manufacturer,
     category,
@@ -100,7 +102,7 @@ export const addNewMedicine = (req, res) => {
   } = req.body;
 
   // validation
-  if (!pharmacyId || !name || !price || !quantity || !expiryDate) {
+  if (!name || !price || !quantity || !expiryDate) {
     return res.status(400).json({ message: "Missing data" });
   }
 
@@ -162,7 +164,8 @@ export const addNewMedicine = (req, res) => {
 // ----------------------------------update pharmacy info----------------------------------
 
 export const updatePharmacy = async (req, res) => {
-  const { Name, Email, pharmacyId, phone, location, password } = req.body;
+  const pharmacyId = req.pharmacy_data.id;
+  const { Name, Email, phone, location, password } = req.body;
 
   if (!pharmacyId) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
@@ -288,13 +291,81 @@ export const updatePharmacy = async (req, res) => {
     }
   });
 };
+// --------------------------------pharmacy orders----------------------------------
 
+export const getPharmacyOrders = (req, res) => {
+  const pharmacyId = req.pharmacy_data.id;
+
+  if (!pharmacyId) {
+    return res.status(400).json({ message: "Pharmacy ID is required" });
+  }
+
+  const checkPharmacy = "SELECT * FROM pharmacy WHERE Id = ?";
+  db.execute(checkPharmacy, [pharmacyId], (err, pharmacyResult) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (pharmacyResult.length === 0) {
+      return res.status(404).json({ message: "Pharmacy not found" });
+    }
+
+    // جلب الطلبات مع تفاصيل المستخدم والأدوية
+    const ordersQuery = `
+      SELECT o.Id as orderId, o.OrderDate, o.OrderStatus, o.TotalPrice,
+             u.Id as userId, u.Name as userName, u.Email as userEmail,
+             m.Id as medicineId, m.Name as medicineName, od.Quantity, od.Price
+      FROM orders o
+      JOIN users u ON o.UserId = u.Id
+      JOIN orderdetails od ON od.OrderId = o.Id
+      JOIN medicine m ON od.MedicineId = m.Id
+      WHERE o.PharmacyId = ?
+      ORDER BY o.OrderDate DESC
+    `;
+
+    db.execute(ordersQuery, [pharmacyId], (err, orders) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Server error" });
+      }
+
+      const result = {};
+      orders.forEach(row => {
+        if (!result[row.orderId]) {
+          result[row.orderId] = {
+            orderId: row.orderId,
+            orderDate: row.OrderDate,
+            orderStatus: row.OrderStatus,
+            totalPrice: row.TotalPrice,
+            user: {
+              id: row.userId,
+              name: row.userName,
+              email: row.userEmail
+            },
+            medicines: []
+          };
+        }
+
+        result[row.orderId].medicines.push({
+          id: row.medicineId,
+          name: row.medicineName,
+          quantity: row.Quantity,
+          price: row.Price
+        });
+      });
+
+      res.json(Object.values(result));
+    });
+  });
+};
 
 // -------------------------------------------------------------------------------------
 
 
 export const deletemedicine = (req, res) => {
-  const { pharmacy_id, medicine_id, Quantity } = req.body;
+const pharmacy_id = req.pharmacy_data.id;
+  const {medicine_id, Quantity } = req.body;
 
   const query = `
     SELECT pharmacymedicine.Quantity 
@@ -356,7 +427,7 @@ export const deletemedicine = (req, res) => {
   ////////////////////////////////////////////////////////////////////////////
 
   export const getall_medicine = (req, res) => {
-  const { pharmacy_id } = req.params;
+  const pharmacy_id  = req.pharmacy_data.id;
 
   const query = `
     SELECT 
@@ -400,7 +471,7 @@ export const deletemedicine = (req, res) => {
 ///////////////////////////////////////////////////////////////// 
 
 export const search_medicine =(req, res) => {
-  const { pharmacy_id  } = req.params;
+  const pharmacy_id = req.pharmacy_data.id;
   const {input} = req.query
 
  const query = `
@@ -458,7 +529,7 @@ GROUP BY medicine.Id;
 /////////////////////////////////////////////////////////////////////
 
 export const profile_pharmcy = (req, res) => {
-  const { pharmacy_id } = req.params;
+  const pharmacy_id= req.pharmacy_data.id;
 
   if (!pharmacy_id) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
