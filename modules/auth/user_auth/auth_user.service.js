@@ -56,7 +56,7 @@ try {
           }
 
  const token = jwt.sign({ email }, process.env.JWT_SECRET);
-const send = sendEmail({to:email , html: html(`http://localhost:4000/auth/user/acctivate/${token}`)})
+const send = sendEmail({to:email , html: html(`http://localhost:5000/auth/user/acctivate/${token}`)})
 
 
           res.status(201).json({
@@ -94,6 +94,7 @@ export const userLogin = (req, res) => {
     });
   }
 
+
   const checkQuery = "SELECT * FROM users WHERE Email = ?";
 
   db.query(checkQuery, [email], async (err, result) => {
@@ -101,6 +102,11 @@ export const userLogin = (req, res) => {
 
     if (result.length === 0) {
       return res.status(404).json({ message: "user doesn't exist" });
+    }
+
+
+    if (result.IsActive == false){
+      return res.status(401).json({msg:"this account not acctivate"})
     }
 
     const user = result[0];
@@ -142,7 +148,18 @@ const {token} = req.params
 
 const payload = jwt.verify(token , process.env.JWT_SECRET)
 
-return res.status(200).json({msg:"email is acctivate" , eml:payload.email})
+
+const query = `update users set IsActive = true where Email = ?  `
+const values = [payload.email]
+
+db.execute(query , values , (error , result ) =>{
+  if (error)
+    return res.status(500).json({msg:error.message})
+
+ res.status(200).json({msg:"email is acctivate" , eml:payload.email})
+  
+})
+
 } catch (error) {
   res.status(500).json({sucess:false , errro : error.message , stack :error.stack})
 }

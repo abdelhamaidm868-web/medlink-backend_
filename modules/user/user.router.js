@@ -9,12 +9,12 @@ router.get("/get_profile", auth ,user.get_profile);
 router.put("/update_profile",auth, user.update_profile);
 
 ///
+// router.get("/home/getall_medicine", user.home_getall_medicine)
 router.get("/home/getall_medicine", user.home_getall_medicine)
-// router.get("/home/getall_medicine",loc, user.home_getall_medicine)
 
 // router.get("/home/search", user.home_search)
 
-router.get("/home/search", loc,user.home_search)
+router.get("/home/search",user.home_search)
 
 router.post("/comment" ,auth, user.add_comment)
 

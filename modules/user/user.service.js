@@ -94,90 +94,86 @@ values.push(user_data.id)
 
 // controllers/medicineController.js
 
-// export const home_getall_medicine = (req, res) => {
-//   try {
-//     // 1. استخراج الإحداثيات الجاهزة من الـ Middleware
-//     const { lat, lng } = req.userLocation;
-//     const radius = parseFloat(req.query.radius) || 10; // النطاق الافتراضي 10 كيلو
+ export const home_getall_medicine = (req, res) => {
+  try {
+    // 1. استخراج الإحداثيات وتحويلها لأرقام صريحة لتجنب مشاكل الـ Types
+    const lat = parseFloat(req.body.lat);
+    const lng = parseFloat(req.body.lng);
+    const radius = parseFloat(req.query.radius) || 10;
 
-//     // 2. استعلام الـ SQL
-//     const query = `
-//       SELECT 
-//         medicine.Name,
-//         medicine.Id as medicine_id,
-//         medicine.Manufacturer,
-//         medicine.Category,
-//         medicine.Description,
-//         pharmacymedicine.Price,
-//         pharmacymedicine.Quantity,
-//         pharmacy.Name as pharmacy_name,
-//         pharmacy.Location,
-//         ( 6371 * acos( cos( radians(?) ) 
-//           * cos( radians( pharmacy.latitude ) ) 
-//           * cos( radians( pharmacy.longitude ) - radians(?) ) 
-//           + sin( radians(?) ) 
-//           * sin( radians( pharmacy.latitude ) ) ) 
-//         ) AS distance
-//       FROM medicine
-//       JOIN pharmacymedicine 
-//         ON pharmacymedicine.MedicineId = medicine.Id
-//       JOIN pharmacy 
-//         ON pharmacy.Id = pharmacymedicine.PharmacyId
-//       HAVING distance < ?
-//       ORDER BY distance ASC;
-//     `;
+    if (!lat || !lng) {
+      return res.status(400).json({ msg: "lat/lng are required" });
+    }
 
-//     // 3. تمرير الإحداثيات للاستعلام
-//     db.execute(query, [lat, lng, lat, radius], (error, result) => {
-//       if (error) return res.status(500).json({ msg: error.message });
+    // 2. استعلام الـ SQL مع إصلاح مشكلة الـ Floating Point باستخدام LEAST
+    const query = `
+      SELECT 
+        pharmacy.Name as pharmacy_name,
+        pharmacy.id as pharmacy_id,
+        pharmacy.Phone as pharmacy_phaone,
+        pharmacy.Rate as pharmacy_rate,
+        pharmacy.Location,
+        ( 6371 * acos( LEAST(1.0, cos( radians(?) ) 
+          * cos( radians( pharmacy.latitude ) ) 
+          * cos( radians( pharmacy.longitude ) - radians(?) ) 
+          + sin( radians(?) ) 
+          * sin( radians( pharmacy.latitude ) ) ) )
+        ) AS distance
+      FROM pharmacy
+      HAVING distance < ?
+      ORDER BY distance ASC;
+    `;
 
-//       res.status(200).json({ data: result });
-//     });
+    // 3. تمرير المتغيرات
+    db.execute(query, [lat, lng, lat, radius], (error, result) => {
+      if (error) return res.status(500).json({ msg: error.message });
 
-//   } catch (error) {
-//     res.status(500).json({ success: false, msg: error.message, stack: error.stack });
-//   }
-// };
+      res.status(200).json({ data: result });
+    });
 
-
-
-
-
-
-
-
-
-export const home_getall_medicine = (req, res) => {
- try {
-   const query = `
-    SELECT 
-      medicine.Name,
-      medicine.Id as medicine_id,
-      medicine.Manufacturer,
-      medicine.Category,
-      medicine.Description,
-      pharmacymedicine.Price,
-      pharmacymedicine.Quantity,
-      pharmacy.Name as pharmacy_name,
-      pharmacy.Location
-    FROM medicine
-    JOIN pharmacymedicine 
-      ON pharmacymedicine.MedicineId = medicine.Id
-    JOIN pharmacy 
-      ON pharmacy.Id = pharmacymedicine.PharmacyId;
-  `;
-
-  db.execute(query, [], (error, result) => {
-    if (error) return res.status(500).json({ msg: error.message });
-
-    res.status(200).json({ data: result });
-  });
-
- } catch (error) {
-      res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
-
- }
+  } catch (error) {
+    res.status(500).json({ success: false, msg: error.message, stack: error.stack });
+  }
 };
+
+
+
+
+
+
+
+
+// export const home_getall_medicine = (req, res) => {
+//  try {
+//    const query = `
+//     SELECT 
+//       medicine.Name,
+//       medicine.Id as medicine_id,
+//       medicine.Manufacturer,
+//       medicine.Category,
+//       medicine.Description,
+//       pharmacymedicine.Price,
+//       pharmacymedicine.Quantity,
+//       pharmacy.Name as pharmacy_name,
+//       pharmacy.Location
+//     FROM medicine
+//     JOIN pharmacymedicine 
+//       ON pharmacymedicine.MedicineId = medicine.Id
+//     JOIN pharmacy 
+//       ON pharmacy.Id = pharmacymedicine.PharmacyId;
+//   `;
+
+//   db.execute(query, [], (error, result) => {
+//     if (error) return res.status(500).json({ msg: error.message });
+
+//     res.status(200).json({ data: result });
+//   });
+
+//  } catch (error) {
+//       res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
+
+//  }
+// };
 
 
 
@@ -206,145 +202,169 @@ export const home_getall_medicine = (req, res) => {
 ///////////////////////////////////////////////////////////////
 
 
+// export const home_search = (req, res) => {
+//  try {
+//    const { input } = req.query;
+
+//   if (!input) {
+//     return res.status(400).json({ msg: "input is required" });
+//   }
+
+//   const query = `
+//   SELECT 
+//     medicine.Name,
+//     medicine.Id as medicine_id,
+//     medicine.Manufacturer,
+//     medicine.Category,
+//     medicine.Description,
+//     pharmacymedicine.Price,
+//     pharmacymedicine.Quantity,
+//     pharmacy.Name as pharmacy_name,
+//     pharmacy.Location,
+//     pharmacy.Id as pharmcy_id,
+//     pharmacy.Phone as pharmcy_phone,
+//     pharmacy.Rate,
+
+//     COUNT(comment.Id) as comments_count
+
+//   FROM medicine
+
+//   JOIN pharmacymedicine
+//     ON pharmacymedicine.MedicineId = medicine.Id
+
+//   JOIN pharmacy
+//     ON pharmacy.Id = pharmacymedicine.PharmacyId
+
+//   LEFT JOIN comment
+//     ON comment.Pharmacy_id = pharmacy.Id
+
+//   WHERE medicine.Name LIKE ?
+
+//   GROUP BY 
+//     medicine.Id,
+//     pharmacy.Id
+// `;
+
+//   const values = [`%${input}%`];
+
+//   db.execute(query, values, (error, result) => {
+//     if (error) {
+//       return res.status(500).json({ msg: error.message });
+//     }
+
+//     if (result.length === 0) {
+//       return res.status(404).json({ msg: "Don't find any medicine" });
+//     }
+
+//     return res.status(200).json({ data: result });
+//   });
+//  } catch (error) {
+//       res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
+
+//  }
+// };
+
+
 export const home_search = (req, res) => {
- try {
-   const { input } = req.query;
+  try {
+    const { input } = req.query;
 
-  if (!input) {
-    return res.status(400).json({ msg: "input is required" });
+    // 1. استخراج الإحداثيات والتأكد من أنها أرقام صريحة
+    const lat = parseFloat(req.body.lat);
+    const lng = parseFloat(req.body.lng);
+    const radius = parseFloat(req.query.radius) || 10; // النطاق الافتراضي 10 كيلو
+
+    if (!input) {
+      return res.status(400).json({ msg: "input is required" });
+    }
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ msg: "Valid lat and lng are required" });
+    }
+
+    // 2. استعلام الـ SQL المُعدل
+    const query = `
+      SELECT 
+        medicine.Name,
+        medicine.Id as medicine_id,
+        medicine.Manufacturer,
+        medicine.Category,
+        medicine.Description,
+        pharmacymedicine.Price,
+        pharmacymedicine.Quantity,
+        pharmacy.Name as pharmacy_name,
+        pharmacy.Location,
+        pharmacy.Id as pharmcy_id,
+        pharmacy.Phone as pharmcy_phone,
+        pharmacy.Rate,
+        COUNT(comment.Id) as comments_count,
+        ( 6371 * acos( LEAST(1.0, cos( radians(?) ) 
+          * cos( radians( pharmacy.latitude ) ) 
+          * cos( radians( pharmacy.longitude ) - radians(?) ) 
+          + sin( radians(?) ) 
+          * sin( radians( pharmacy.latitude ) ) ) )
+        ) AS distance
+
+      FROM medicine
+      JOIN pharmacymedicine 
+        ON pharmacymedicine.MedicineId = medicine.Id
+      JOIN pharmacy 
+        ON pharmacy.Id = pharmacymedicine.PharmacyId
+      LEFT JOIN comment 
+        ON comment.Pharmacy_id = pharmacy.Id
+
+      WHERE medicine.Name LIKE ?
+
+      -- تمت إضافة latitude و longitude هنا لتفادي خطأ ONLY_FULL_GROUP_BY
+      GROUP BY 
+        medicine.Id,
+        medicine.Name,
+        medicine.Manufacturer,
+        medicine.Category,
+        medicine.Description,
+        pharmacymedicine.Price,
+        pharmacymedicine.Quantity,
+        pharmacy.Id,
+        pharmacy.Name,
+        pharmacy.Location,
+        pharmacy.Phone,
+        pharmacy.Rate,
+        pharmacy.latitude,
+        pharmacy.longitude
+      
+      HAVING distance < ?
+      ORDER BY distance ASC
+    `;
+
+    // 3. ترتيب القيم الممررة للاستعلام 
+    const values = [lat, lng, lat, `%${input}%`, radius];
+
+    db.execute(query, values, (error, result) => {
+      if (error) {
+        return res.status(500).json({ msg: error.message });
+      }
+
+      if (result.length === 0) {
+        return res.status(404).json({ msg: "Don't find any medicine" });
+      }
+
+      return res.status(200).json({ data: result });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, msg: error.message, stack: error.stack });
   }
-
-  const query = `
-  SELECT 
-    medicine.Name,
-    medicine.Id as medicine_id,
-    medicine.Manufacturer,
-    medicine.Category,
-    medicine.Description,
-    pharmacymedicine.Price,
-    pharmacymedicine.Quantity,
-    pharmacy.Name as pharmacy_name,
-    pharmacy.Location,
-    pharmacy.Id as pharmcy_id,
-    pharmacy.Phone as pharmcy_phone,
-    pharmacy.Rate,
-
-    COUNT(comment.Id) as comments_count
-
-  FROM medicine
-
-  JOIN pharmacymedicine
-    ON pharmacymedicine.MedicineId = medicine.Id
-
-  JOIN pharmacy
-    ON pharmacy.Id = pharmacymedicine.PharmacyId
-
-  LEFT JOIN comment
-    ON comment.Pharmacy_id = pharmacy.Id
-
-  WHERE medicine.Name LIKE ?
-
-  GROUP BY 
-    medicine.Id,
-    pharmacy.Id
-`;
-
-  const values = [`%${input}%`];
-
-  db.execute(query, values, (error, result) => {
-    if (error) {
-      return res.status(500).json({ msg: error.message });
-    }
-
-    if (result.length === 0) {
-      return res.status(404).json({ msg: "Don't find any medicine" });
-    }
-
-    return res.status(200).json({ data: result });
-  });
- } catch (error) {
-      res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
-
- }
 };
 
 
 
 
-// export const home_search = (req, res) => {
-//   try {
-//     const { input } = req.query;
 
-//     // 1. استخراج الإحداثيات من الـ Middleware والنطاق (radius)
-//     const { lat, lng } = req.userLocation;
-//     const radius = parseFloat(req.query.radius) || 10; // النطاق الافتراضي 10 كيلو
 
-//     if (!input) {
-//       return res.status(400).json({ msg: "input is required" });
-//     }
 
-//     // 2. استعلام الـ SQL مدمج فيه حساب المسافة
-//     const query = `
-//       SELECT 
-//         medicine.Name,
-//         medicine.Id as medicine_id,
-//         medicine.Manufacturer,
-//         medicine.Category,
-//         medicine.Description,
-//         pharmacymedicine.Price,
-//         pharmacymedicine.Quantity,
-//         pharmacy.Name as pharmacy_name,
-//         pharmacy.Location,
-//         pharmacy.Id as pharmcy_id,
-//         pharmacy.Phone as pharmcy_phone,
-//         pharmacy.Rate,
-//         COUNT(comment.Id) as comments_count,
-//         ( 6371 * acos( cos( radians(?) ) 
-//           * cos( radians( pharmacy.latitude ) ) 
-//           * cos( radians( pharmacy.longitude ) - radians(?) ) 
-//           + sin( radians(?) ) 
-//           * sin( radians( pharmacy.latitude ) ) ) 
-//         ) AS distance
 
-//       FROM medicine
-//       JOIN pharmacymedicine 
-//         ON pharmacymedicine.MedicineId = medicine.Id
-//       JOIN pharmacy 
-//         ON pharmacy.Id = pharmacymedicine.PharmacyId
-//       LEFT JOIN comment 
-//         ON comment.Pharmacy_id = pharmacy.Id
 
-//       WHERE medicine.Name LIKE ?
 
-//       GROUP BY 
-//         medicine.Id,
-//         pharmacy.Id
-      
-//       HAVING distance < ?
-//       ORDER BY distance ASC
-//     `;
-
-//     // 3. ترتيب القيم الممررة للاستعلام مهم جداً:
-//     // [lat, lng, lat] -> لحساب المسافة
-//     // [%${input}%] -> للبحث عن اسم الدواء
-//     // [radius] -> لفلترة النتائج في جملة HAVING
-//     const values = [lat, lng, lat, `%${input}%`, radius];
-
-//     db.execute(query, values, (error, result) => {
-//       if (error) {
-//         return res.status(500).json({ msg: error.message });
-//       }
-
-//       if (result.length === 0) {
-//         return res.status(404).json({ msg: "Don't find any medicine" });
-//       }
-
-//       return res.status(200).json({ data: result });
-//     });
-//   } catch (error) {
-//     res.status(500).json({ success: false, msg: error.message, stack: error.stack });
-//   }
-// };
+///////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -353,25 +373,12 @@ export const home_search = (req, res) => {
 
 
 
+///////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////
 
 
-
-
-/////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-/////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////
-
-
-//////////
+////////
 
 export const add_comment = (req, res) => {
 try {
