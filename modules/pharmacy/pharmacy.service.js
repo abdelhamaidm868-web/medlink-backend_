@@ -1,12 +1,10 @@
 import bcrypt from "bcrypt";
 import { db } from "../../config/database.js";
 
-
 // ------------------------------- Add Medicine to Pharmacy --------------------------------
 export const addMedicineToPharmacy = (req, res) => {
-  
   const pharmacyId = req.pharmacy_data.id;
-  const {medicineId, price, quantity, expiryDate } = req.body;
+  const { medicineId, price, quantity, expiryDate } = req.body;
 
   if (!pharmacyId || !medicineId || !price || !quantity || !expiryDate) {
     return res.status(400).json({ message: "All fields are required" });
@@ -62,7 +60,7 @@ export const addMedicineToPharmacy = (req, res) => {
               }
 
               return res.json({ message: "Medicine quantity updated" });
-            }
+            },
           );
         } else {
           // إضافة الدواء للمخزون
@@ -80,8 +78,10 @@ export const addMedicineToPharmacy = (req, res) => {
                 return res.status(500).json({ message: "Server error5" });
               }
 
-              return res.status(201).json({ message: "Medicine added to pharmacy" });
-            }
+              return res
+                .status(201)
+                .json({ message: "Medicine added to pharmacy" });
+            },
           );
         }
       });
@@ -91,84 +91,73 @@ export const addMedicineToPharmacy = (req, res) => {
 ///////////////////////////////////////////////////////////////////////////
 
 export const addNewMedicine = (req, res) => {
-try {
-  
+  try {
+    let { name, manufacturer, category, description } = req.body;
 
-  let {
-    name,
-    manufacturer,
-    category,
-    description
-  } = req.body;
+    // validation
+    if (!name) {
+      return res.status(400).json({ message: "Missing data" });
+    }
 
-  // validation
-  if (!name ) {
-    return res.status(400).json({ message: "Missing data" });
-  }
+    // 🔥 تنظيف الاسم
+    name = name.trim().toLowerCase();
 
-  // 🔥 تنظيف الاسم
-  name = name.trim().toLowerCase();
-
-  // 1️⃣ check لو موجود أصلاً
-  const checkQuery = `
+    // 1️⃣ check لو موجود أصلاً
+    const checkQuery = `
     SELECT Id FROM medicine 
     WHERE LOWER(Name) = LOWER(?)
   `;
 
-  db.execute(checkQuery, [name], (err, result) => {
-    if (err) return res.status(500).json({ msg: err.message });
+    db.execute(checkQuery, [name], (err, result) => {
+      if (err) return res.status(500).json({ msg: err.message });
 
-    if (result.length > 0) {
-      return res.status(400).json({
-        message: "Medicine already exists, use addMedicine endpoint"
-      });
-    }
+      if (result.length > 0) {
+        return res.status(400).json({
+          message: "Medicine already exists, use addMedicine endpoint",
+        });
+      }
 
-    // 2️⃣ add to medicine table
-    const insertMedicine = `
+      // 2️⃣ add to medicine table
+      const insertMedicine = `
       INSERT INTO medicine (Name, Manufacturer, Category, Description)
       VALUES (?, ?, ?, ?)
     `;
 
-    db.execute(
-      insertMedicine,
-      [name, manufacturer || null, category || null, description || null],
-      (err, medResult) => {
-        if (err) return res.status(500).json({ msg: err.message });
+      db.execute(
+        insertMedicine,
+        [name, manufacturer || null, category || null, description || null],
+        (err, medResult) => {
+          if (err) return res.status(500).json({ msg: err.message });
 
-        const medicineId = medResult.insertId;
+          const medicineId = medResult.insertId;
 
-        // // 3️⃣ add to stock
-        // const insertStock = `
-        //   INSERT INTO pharmacymedicine
-        //   (PharmacyId, MedicineId, Price, Quantity, ExpiryDate)
-        //   VALUES (?, ?, ?, ?, ?)
-        // `;
+          // // 3️⃣ add to stock
+          // const insertStock = `
+          //   INSERT INTO pharmacymedicine
+          //   (PharmacyId, MedicineId, Price, Quantity, ExpiryDate)
+          //   VALUES (?, ?, ?, ?, ?)
+          // `;
 
-        // db.execute(
-        //   insertStock,
-        //   [pharmacyId, medicineId, price, quantity, expiryDate],
-        //   (err) => {
-        //     if (err) return res.status(500).json({ msg: err.message });
+          // db.execute(
+          //   insertStock,
+          //   [pharmacyId, medicineId, price, quantity, expiryDate],
+          //   (err) => {
+          //     if (err) return res.status(500).json({ msg: err.message });
 
-        //     res.status(201).json({
-        //       message: "New medicine added successfully",
-        //       medicineId
-        //     });
-        //   }
-        // );
-      
-      res.status(200).json({msg:"the Medicine add to System success"})
-      
-      
-      }
-    );
-  });
+          //     res.status(201).json({
+          //       message: "New medicine added successfully",
+          //       medicineId
+          //     });
+          //   }
+          // );
 
-
-} catch (error) {
-  res.status(500).json({msg:error.message , stack:error.stack})
-}
+          res.status(200).json({ msg: "the Medicine add to System success" });
+        },
+      );
+    });
+  } catch (error) {
+    res.status(500).json({ msg: error.message, stack: error.stack });
+  }
 };
 // ----------------------------------update pharmacy info----------------------------------
 
@@ -259,89 +248,87 @@ export const updatePharmacy = async (req, res) => {
     //   });
 
     // } else {
-      // ✅ لو مفيش Email → كمل عادي
+    // ✅ لو مفيش Email → كمل عادي
 
-      if (phone) {
-        fields.push("Phone = ?");
-        values.push(phone);
+    if (phone) {
+      fields.push("Phone = ?");
+      values.push(phone);
+    }
+
+    if (location) {
+      fields.push("Location = ?");
+      values.push(location);
+    }
+
+    if (password) {
+      const [result] = await db
+        .promise()
+        .query("SELECT Password FROM pharmacy WHERE Id = ?", [user_data.id]);
+
+      const comparePassword = bcrypt.compareSync(
+        old_password,
+        result[0].Password,
+      );
+
+      if (!comparePassword) {
+        return res.status(400).json({
+          msg: "the old password is wrong",
+        });
       }
 
-      if (location) {
-        fields.push("Location = ?");
-        values.push(location);
-      }
+      const hashedPassword = bcrypt.hashSync(password, 10);
 
-       if (password) {
-      
-        const [result] = await db.promise().query(
-          "SELECT Password FROM pharmacy WHERE Id = ?",
-          [user_data.id]
-        );
-      
-        const comparePassword = bcrypt.compareSync(
-          old_password,
-          result[0].Password
-        );
-      
-        if (!comparePassword) {
-          return res.status(400).json({
-            msg: "the old password is wrong"
-          });
-        }
-      
-        const hashedPassword = bcrypt.hashSync(password, 10);
-      
-        fields.push("Password = ?");
-        values.push(hashedPassword);
-      }
+      fields.push("Password = ?");
+      values.push(hashedPassword);
+    }
 
-      if (fields.length === 0) {
-        return res.status(400).json({ message: "No fields to update" });
-      }
+    if (fields.length === 0) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
 
-      values.push(pharmacyId);
+    values.push(pharmacyId);
 
-      const updateQuery = `
+    const updateQuery = `
         UPDATE pharmacy
         SET ${fields.join(", ")}
         WHERE Id = ?
       `;
 
-      db.execute(updateQuery, values, (err) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).json({ message: "Server error" });
-        }
+    db.execute(updateQuery, values, (err) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Server error" });
+      }
 
-        return res.json({ message: "Pharmacy updated successfully" });
-      });
-    
+      return res.json({ message: "Pharmacy updated successfully" });
+    });
   });
 };
 // --------------------------------pharmacy orders----------------------------------
 
 export const getPharmacyOrders = (req, res) => {
-  const pharmacyId = req.pharmacy_data.id;
+  try {
+    const pharmacyId = req.pharmacy_data.id;
 
-  if (!pharmacyId) {
-    return res.status(400).json({ message: "Pharmacy ID is required" });
-  }
-
-  const checkPharmacy = "SELECT * FROM pharmacy WHERE Id = ?";
-  db.execute(checkPharmacy, [pharmacyId], (err, pharmacyResult) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Server error" });
+    if (!pharmacyId) {
+      return res.status(400).json({ message: "Pharmacy ID is required" });
     }
 
-    if (pharmacyResult.length === 0) {
-      return res.status(404).json({ message: "Pharmacy not found" });
-    }
+    const checkPharmacy = "SELECT * FROM pharmacy WHERE Id = ?";
+    db.execute(checkPharmacy, [pharmacyId], (err, pharmacyResult) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Server error" });
+      }
 
-    // جلب الطلبات مع تفاصيل المستخدم والأدوية
-    const ordersQuery = `
+      if (pharmacyResult.length === 0) {
+        return res.status(404).json({ message: "Pharmacy not found" });
+      }
+
+      // جلب الطلبات مع تفاصيل المستخدم والأدوية
+      const ordersQuery = `
       SELECT o.Id as orderId, o.OrderDate, o.OrderStatus, o.TotalPrice,
-             u.Id as userId, u.Name as userName, u.Email as userEmail,
+             u.Id as userId, u.Name as userName, u.Email as userEmail,u.Phone AS phoneNumber , u.Location AS Location,
              m.Id as medicineId, m.Name as medicineName, od.Quantity, od.Price
       FROM orders o
       JOIN users u ON o.UserId = u.Id
@@ -351,48 +338,54 @@ export const getPharmacyOrders = (req, res) => {
       ORDER BY o.OrderDate DESC
     `;
 
-    db.execute(ordersQuery, [pharmacyId], (err, orders) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Server error" });
-      }
-
-      const result = {};
-      orders.forEach(row => {
-        if (!result[row.orderId]) {
-          result[row.orderId] = {
-            orderId: row.orderId,
-            orderDate: row.OrderDate,
-            orderStatus: row.OrderStatus,
-            totalPrice: row.TotalPrice,
-            user: {
-              id: row.userId,
-              name: row.userName,
-              email: row.userEmail
-            },
-            medicines: []
-          };
+      db.execute(ordersQuery, [pharmacyId], (err, orders) => {
+        if (err) {
+          console.log(err);
+          return res.status(500).json({ message: "Server error" });
         }
 
-        result[row.orderId].medicines.push({
-          id: row.medicineId,
-          name: row.medicineName,
-          quantity: row.Quantity,
-          price: row.Price
-        });
-      });
+        const result = {};
+        orders.forEach((row) => {
+          if (!result[row.orderId]) {
+            result[row.orderId] = {
+              orderId: row.orderId,
+              orderDate: row.OrderDate,
+              orderStatus: row.OrderStatus,
+              totalPrice: row.TotalPrice,
+              user: {
+                id: row.userId,
+                name: row.userName,
+                email: row.userEmail,
+                Location: row.Location,
+                phoneNumber: row.phoneNumber,
+              },
+              medicines: [],
+            };
+          }
 
-      res.json(Object.values(result));
+          result[row.orderId].medicines.push({
+            id: row.medicineId,
+            name: row.medicineName,
+            quantity: row.Quantity,
+            price: row.Price,
+          });
+        });
+
+        res.json(Object.values(result));
+      });
     });
-  });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: true, message: error.message, stack: error.stack });
+  }
 };
 
 // -------------------------------------------------------------------------------------
 
-
 export const deletemedicine = (req, res) => {
-const pharmacy_id = req.pharmacy_data.id;
-  const {medicine_id, Quantity } = req.body;
+  const pharmacy_id = req.pharmacy_data.id;
+  const { medicine_id, Quantity } = req.body;
 
   const query = `
     SELECT pharmacymedicine.Quantity 
@@ -449,12 +442,13 @@ const pharmacy_id = req.pharmacy_data.id;
         remaining: newQuantity,
       });
     });
-  })}
+  });
+};
 
-  ////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 
-  export const getall_medicine = (req, res) => {
-  const pharmacy_id  = req.pharmacy_data.id;
+export const getall_medicine = (req, res) => {
+  const pharmacy_id = req.pharmacy_data.id;
 
   const query = `
     SELECT 
@@ -487,48 +481,46 @@ const pharmacy_id = req.pharmacy_data.id;
 
       res.status(200).json({
         msg: result,
-        warning: warning, 
+        warning: warning,
       });
     } else {
       res.status(404).json({ msg: "No medicines found" });
     }
   });
-}
+};
 
-///////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////
 
-export const search_medicine =(req, res) => {
+export const search_medicine = (req, res) => {
   const pharmacy_id = req.pharmacy_data.id;
-  const {input} = req.query
+  const { input } = req.query;
 
- const query = `
-SELECT 
+  const query = `SELECT
   medicine.Name,
-  medicine.Id as medicine_id,
+  medicine.Id AS medicine_id,
   medicine.Category,
   medicine.Description,
   pharmacymedicine.Price,
   pharmacymedicine.Quantity,
   pharmacymedicine.ExpiryDate,
 
-  COUNT(comment.Id) AS comments_count
+  (
+      SELECT COUNT(*)
+      FROM comment
+      WHERE comment.Pharmacy_id = pharmacymedicine.PharmacyId
+  ) AS comments_count
 
-FROM medicine 
+FROM medicine
 
-JOIN pharmacymedicine 
+JOIN pharmacymedicine
   ON medicine.Id = pharmacymedicine.MedicineId
 
-LEFT JOIN comment 
-  ON pharmacymedicine.PharmacyId = comment.Pharmacy_id
-
-WHERE pharmacymedicine.PharmacyId = ? 
-  AND medicine.Name LIKE ?
-
-GROUP BY medicine.Id;
+WHERE pharmacymedicine.PharmacyId = ?
+  AND LOWER(medicine.Name) LIKE LOWER(?)
 `;
 
-  const values = [pharmacy_id , `%${input}%`];
- 
+  const values = [pharmacy_id, `%${input}%`];
+
   db.execute(query, values, (error, result) => {
     if (error) return res.json({ msg: error.message });
 
@@ -550,13 +542,74 @@ GROUP BY medicine.Id;
       res.status(404).json({ msg: "No medicines found" });
     }
   });
-}
+};
+//////////////////////////search_system_medicine//////////////////////////////////////////
+export const search_system_medicine = (req, res) => {
+  try {
+    const { input } = req.query;
+    const pharmacyId = req.pharmacy_data.id;
+    // 1. استخراج الإحداثيات والتأكد من أنها أرقام صريحة
+    // const lat = parseFloat(req.body.lat);
+    // const lng = parseFloat(req.body.lng);
+    // const radius = parseFloat(req.query.radius) || 10; // النطاق الافتراضي 10 كيلو
 
+    if (!input) {
+      return res.status(400).json({ msg: "input is required" });
+    }
 
+    // if (isNaN(lat) || isNaN(lng)) {
+    //   return res.status(400).json({ msg: "Valid lat and lng are required" });
+    // }
+
+    // 2. استعلام الـ SQL المُعدل
+    const query = `
+SELECT
+    medicine.Id AS medicine_id,
+    medicine.Name,
+    medicine.Manufacturer,
+    medicine.Category,
+    medicine.Description,
+
+    pharmacymedicine.Quantity,
+
+    CASE
+        WHEN pharmacymedicine.MedicineId IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END AS exists_in_pharmacy
+
+FROM medicine
+
+LEFT JOIN pharmacymedicine
+    ON medicine.Id = pharmacymedicine.MedicineId
+    AND pharmacymedicine.PharmacyId = ?
+
+WHERE LOWER(medicine.Name) LIKE LOWER(?)
+`;
+
+    // 3. ترتيب القيم الممررة للاستعلام
+    // const values = [lat, lng, lat, `%${input}%`, radius];
+
+    db.execute(query, [pharmacyId, `%${input}%`], (error, result) => {
+      if (error) {
+        return res.status(500).json({ msg: error.message });
+      }
+
+      if (result.length === 0) {
+        return res.status(404).json({ msg: "Don't find any medicine" });
+      }
+
+      return res.status(200).json({ data: result });
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: error.message, stack: error.stack });
+  }
+};
 /////////////////////////////////////////////////////////////////////
 
 export const profile_pharmcy = (req, res) => {
-  const pharmacy_id= req.pharmacy_data.id;
+  const pharmacy_id = req.pharmacy_data.id;
 
   if (!pharmacy_id) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
@@ -586,7 +639,7 @@ export const profile_pharmcy = (req, res) => {
       JOIN users u ON c.User_id = u.Id
       WHERE c.Pharmacy_id = ?
       ORDER BY c.Id DESC
-    `; 
+    `;
 
     db.execute(commentsQuery, [pharmacy_id], (error, commentsResult) => {
       if (error) return res.status(500).json({ msg: error.message });
@@ -594,8 +647,8 @@ export const profile_pharmcy = (req, res) => {
       // 3️⃣ نرجّع الاتنين مع بعض
       res.json({
         pharmacy: pharmacyResult[0],
-        comments: commentsResult
+        comments: commentsResult,
       });
     });
   });
-};        
+};

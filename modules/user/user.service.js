@@ -326,7 +326,7 @@ export const home_search = (req, res) => {
       LEFT JOIN comment 
         ON comment.Pharmacy_id = pharmacy.Id
 
-      WHERE medicine.Name LIKE ?
+      WHERE LOWER(medicine.Name) LIKE LOWER(?)
 
       -- تمت إضافة latitude و longitude هنا لتفادي خطأ ONLY_FULL_GROUP_BY
       GROUP BY 
