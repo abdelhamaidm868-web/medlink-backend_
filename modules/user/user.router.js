@@ -10,11 +10,11 @@ router.put("/update_profile",auth, user.update_profile);
 
 ///
 // router.get("/home/getall_medicine", user.home_getall_medicine)
-router.get("/home/getall_medicine", user.home_getall_medicine)
+router.post("/home/getall_medicine", user.home_getall_medicine)
 
 // router.get("/home/search", user.home_search)
 
-router.get("/home/search",user.home_search)
+router.post("/home/search",user.home_search)
 
 router.post("/comment" ,auth, user.add_comment)
 

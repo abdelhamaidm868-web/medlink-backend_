@@ -17,6 +17,7 @@ router.get("/getall_medcine",auth_middleware,phar_router.getall_medicine );
 /////////////////////////////////////////////////////
 
 router.get("/search_medicine",auth_middleware,phar_router.search_medicine );
+router.get("/search_system_medicine",auth_middleware,phar_router.search_system_medicine );
 
 ////////////////////////////////////////////////////////////
 
