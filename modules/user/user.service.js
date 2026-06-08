@@ -24,8 +24,8 @@ export const update_profile = async (req, res) => {
     const {user_data} = req 
     const {
       name,
-      email,
       password,
+      old_password,
       phone,
       location,
       ProfileImagePath,
@@ -37,11 +37,6 @@ export const update_profile = async (req, res) => {
     if (name) {
       fields.push("Name = ?");
       values.push(name);
-    }
-
-    if (email) {
-      fields.push("Email = ?");
-      values.push(email);
     }
 
     if (phone) {
@@ -59,11 +54,29 @@ export const update_profile = async (req, res) => {
       values.push(ProfileImagePath);
     }
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      fields.push("Password = ?");
-      values.push(hashedPassword);
-    }
+   if (password) {
+
+  const [result] = await db.promise().query(
+    "SELECT Password FROM users WHERE Id = ?",
+    [user_data.id]
+  );
+
+  const comparePassword = bcrypt.compareSync(
+    old_password,
+    result[0].Password
+  );
+
+  if (!comparePassword) {
+    return res.status(400).json({
+      msg: "the old password is wrong"
+    });
+  }
+
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  fields.push("Password = ?");
+  values.push(hashedPassword);
+}
 
     // ❌ مفيش أي حاجة تتحدث
     if (fields.length === 0) {
@@ -820,5 +833,57 @@ WHERE userdiseases.UserId=? AND userdiseases.DiseaseId=?;`;
 
 
 
+/////////////////////////////////////////////////////////////////////////////
 
+export const get_profile_pharmacy = (req, res)=>{
+
+try {
+  const {id} = req.params
+
+  if (!id) {
+    return res.status(400).json({ message: "Pharmacy ID is required" });
+  }
+
+  // 1️⃣ نجيب بيانات الصيدلية
+  const pharmacyQuery = `
+    SELECT  Name, Email, Phone, Location
+    FROM pharmacy
+    WHERE Id = ?
+  `;
+
+  db.execute(pharmacyQuery, [id], (error, pharmacyResult) => {
+    if (error) return res.status(500).json({ msg: error.message });
+
+    if (pharmacyResult.length === 0) {
+      return res.status(404).json({ message: "Pharmacy not found" });
+    }
+
+    const commentsQuery = `
+      SELECT 
+        c.Id,
+        c.Comm,
+        c.User_id,
+        u.Name AS user_name
+      FROM comment c
+      JOIN users u ON c.User_id = u.Id
+      WHERE c.Pharmacy_id = ?
+      ORDER BY c.Id DESC
+    `; 
+
+    db.execute(commentsQuery, [id], (error, commentsResult) => {
+      if (error) return res.status(500).json({ msg: error.message });
+
+      // 3️⃣ نرجّع الاتنين مع بعض
+      res.json({
+        pharmacy: pharmacyResult[0],
+        comments: commentsResult
+      });
+    });
+  });
+ 
+} catch (error) {
+ res.status(500).json( {sucess:false , msg : error.message , stack :error.stack}) 
+}
+
+}
 

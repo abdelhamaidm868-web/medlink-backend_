@@ -88,21 +88,21 @@ export const addMedicineToPharmacy = (req, res) => {
     });
   });
 };
+///////////////////////////////////////////////////////////////////////////
 
 export const addNewMedicine = (req, res) => {
-  const pharmacyId = req.pharmacy_data.id;
+try {
+  
+
   let {
     name,
     manufacturer,
     category,
-    description,
-    price,
-    quantity,
-    expiryDate
+    description
   } = req.body;
 
   // validation
-  if (!name || !price || !quantity || !expiryDate) {
+  if (!name ) {
     return res.status(400).json({ message: "Missing data" });
   }
 
@@ -138,34 +138,43 @@ export const addNewMedicine = (req, res) => {
 
         const medicineId = medResult.insertId;
 
-        // 3️⃣ add to stock
-        const insertStock = `
-          INSERT INTO pharmacymedicine
-          (PharmacyId, MedicineId, Price, Quantity, ExpiryDate)
-          VALUES (?, ?, ?, ?, ?)
-        `;
+        // // 3️⃣ add to stock
+        // const insertStock = `
+        //   INSERT INTO pharmacymedicine
+        //   (PharmacyId, MedicineId, Price, Quantity, ExpiryDate)
+        //   VALUES (?, ?, ?, ?, ?)
+        // `;
 
-        db.execute(
-          insertStock,
-          [pharmacyId, medicineId, price, quantity, expiryDate],
-          (err) => {
-            if (err) return res.status(500).json({ msg: err.message });
+        // db.execute(
+        //   insertStock,
+        //   [pharmacyId, medicineId, price, quantity, expiryDate],
+        //   (err) => {
+        //     if (err) return res.status(500).json({ msg: err.message });
 
-            res.status(201).json({
-              message: "New medicine added successfully",
-              medicineId
-            });
-          }
-        );
+        //     res.status(201).json({
+        //       message: "New medicine added successfully",
+        //       medicineId
+        //     });
+        //   }
+        // );
+      
+      res.status(200).json({msg:"the Medicine add to System success"})
+      
+      
       }
     );
   });
+
+
+} catch (error) {
+  res.status(500).json({msg:error.message , stack:error.stack})
+}
 };
 // ----------------------------------update pharmacy info----------------------------------
 
 export const updatePharmacy = async (req, res) => {
   const pharmacyId = req.pharmacy_data.id;
-  const { Name, Email, phone, location, password } = req.body;
+  const { Name, phone, location, password } = req.body;
 
   if (!pharmacyId) {
     return res.status(400).json({ message: "Pharmacy ID is required" });
@@ -192,64 +201,64 @@ export const updatePharmacy = async (req, res) => {
       values.push(Name);
     }
 
-    // ✅ Email + uniqueness check
-    if (Email) {
-      const emailCheck = "SELECT Id FROM pharmacy WHERE Email = ? AND Id != ?";
+    // // ✅ Email + uniqueness check
+    // if (Email) {
+    //   const emailCheck = "SELECT Id FROM pharmacy WHERE Email = ? AND Id != ?";
 
-      db.execute(emailCheck, [Email, pharmacyId], async (err, emailResult) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).json({ message: "Server error" });
-        }
+    //   db.execute(emailCheck, [Email, pharmacyId], async (err, emailResult) => {
+    //     if (err) {
+    //       console.log(err);
+    //       return res.status(500).json({ message: "Server error" });
+    //     }
 
-        if (emailResult.length > 0) {
-          return res.status(400).json({ message: "Email already exists" });
-        }
+    //     if (emailResult.length > 0) {
+    //       return res.status(400).json({ message: "Email already exists" });
+    //     }
 
-        // 👇 نكمل باقي التحديث جوه هنا عشان الإيميل يعدي الأول
+    //     // 👇 نكمل باقي التحديث جوه هنا عشان الإيميل يعدي الأول
 
-        fields.push("Email = ?");
-        values.push(Email);
+    //     fields.push("Email = ?");
+    //     values.push(Email);
 
-        if (phone) {
-          fields.push("Phone = ?");
-          values.push(phone);
-        }
+    //     if (phone) {
+    //       fields.push("Phone = ?");
+    //       values.push(phone);
+    //     }
 
-        if (location) {
-          fields.push("Location = ?");
-          values.push(location);
-        }
+    //     if (location) {
+    //       fields.push("Location = ?");
+    //       values.push(location);
+    //     }
 
-        if (password) {
-          const hashedPassword = await bcrypt.hash(password, 10);
-          fields.push("Password = ?");
-          values.push(hashedPassword);
-        }
+    //     if (password) {
+    //       const hashedPassword = await bcrypt.hash(password, 10);
+    //       fields.push("Password = ?");
+    //       values.push(hashedPassword);
+    //     }
 
-        if (fields.length === 0) {
-          return res.status(400).json({ message: "No fields to update" });
-        }
+    //     if (fields.length === 0) {
+    //       return res.status(400).json({ message: "No fields to update" });
+    //     }
 
-        values.push(pharmacyId);
+    //     values.push(pharmacyId);
 
-        const updateQuery = `
-          UPDATE pharmacy
-          SET ${fields.join(", ")}
-          WHERE Id = ?
-        `;
+    //     const updateQuery = `
+    //       UPDATE pharmacy
+    //       SET ${fields.join(", ")}
+    //       WHERE Id = ?
+    //     `;
 
-        db.execute(updateQuery, values, (err) => {
-          if (err) {
-            console.log(err);
-            return res.status(500).json({ message: "Server error" });
-          }
+    //     db.execute(updateQuery, values, (err) => {
+    //       if (err) {
+    //         console.log(err);
+    //         return res.status(500).json({ message: "Server error" });
+    //       }
 
-          return res.json({ message: "Pharmacy updated successfully" });
-        });
-      });
+    //       return res.json({ message: "Pharmacy updated successfully" });
+    //     });
+    //   });
 
-    } else {
+    // } else {
       // ✅ لو مفيش Email → كمل عادي
 
       if (phone) {
@@ -288,7 +297,7 @@ export const updatePharmacy = async (req, res) => {
 
         return res.json({ message: "Pharmacy updated successfully" });
       });
-    }
+    
   });
 };
 // --------------------------------pharmacy orders----------------------------------

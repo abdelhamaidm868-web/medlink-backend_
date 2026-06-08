@@ -17,6 +17,8 @@ try {
     });
   }
 
+
+
   if(password !== confirmPassword)
   {
     return res.status(400).json({message : "Passwords do not match"})
@@ -41,11 +43,11 @@ try {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const insertQuery =
-        "INSERT INTO users (name, email , location , phone, password) VALUES (? , ? , ? , ? , ?)";
+        "INSERT INTO users (name, email , location , phone, password ) VALUES (? , ? , ? , ? , ? )";
 
       db.execute(
         insertQuery,
-        [name , email , location , phone , hashedPassword],
+        [name , email , location , phone , hashedPassword , role ] ,
         (err, result) => {
 
           if (err) {
@@ -59,7 +61,8 @@ try {
 const send = sendEmail({to:email , html: html(`http://localhost:5000/auth/user/acctivate/${token}`)})
 
 
-          res.status(201).json({
+          res.status(201).json({ 
+            msg : "registeration done ", 
             message: "Please confirm email "
           });
 
@@ -69,9 +72,8 @@ const send = sendEmail({to:email , html: html(`http://localhost:5000/auth/user/a
     } catch (error) {
 
       console.log(error);
-      res.status(500).json({
-        message: "Server error"
-      });
+    
+        res.status(500).json({sucess:false , error : error.message})
 
     }
 
@@ -104,8 +106,9 @@ export const userLogin = (req, res) => {
       return res.status(404).json({ message: "user doesn't exist" });
     }
 
+    
 
-    if (result.IsActive == false){
+    if (result[0].IsActive == false){
       return res.status(401).json({msg:"this account not acctivate"})
     }
 
@@ -149,7 +152,7 @@ const {token} = req.params
 const payload = jwt.verify(token , process.env.JWT_SECRET)
 
 
-const query = `update users set IsActive = true where Email = ?  `
+const query = `update users set IsActive = 1 where Email = ?  `
 const values = [payload.email]
 
 db.execute(query , values , (error , result ) =>{

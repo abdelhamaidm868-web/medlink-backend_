@@ -1,6 +1,8 @@
 import { Router } from "express";
 import * as phar_router from "./pharmacy.service.js" 
 import auth_middleware from "../../middleware/auth_middleware_pharamcy.js"
+import auth_user from "../../middleware/auth.middleware.js"
+import auth_admin from "../../middleware/autherization.js"
 const router = Router()
 
 
@@ -21,7 +23,7 @@ router.get("/search_medicine",auth_middleware,phar_router.search_medicine );
 
 
 router.post("/medicine", auth_middleware ,phar_router.addMedicineToPharmacy );
-router.post("/newMedicine",auth_middleware, phar_router.addNewMedicine  );
+router.post("/newMedicine",auth_user , auth_admin ,  phar_router.addNewMedicine  );
 
 router.put("/update_profile",auth_middleware,phar_router.updatePharmacy );
 router.get("/PharmacyOrders",auth_middleware, phar_router.getPharmacyOrders );
