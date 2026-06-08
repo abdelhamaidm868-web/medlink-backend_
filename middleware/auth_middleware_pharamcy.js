@@ -38,7 +38,6 @@ const auth_middleware = async (req, res, next) => {
       });
     });
 
-
     let pharmacy = null;
 
     // بما أننا استخدمنا Promise محلي، result ستكون هي البيانات الفعلية مباشرة

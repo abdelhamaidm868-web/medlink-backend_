@@ -114,7 +114,6 @@ export const pharmacyLogin = (req, res) => {
       return res.status(400).json({ message: "invalid password" });
     }
 
-    // ✅ إنشاء التوكن
     const token = jwt.sign(
       {
         id: user.Id,

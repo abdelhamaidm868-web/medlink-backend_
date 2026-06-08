@@ -44,4 +44,11 @@ router.delete("/disease" ,auth, user.del_disease)
 
 router.patch("/medicine_status",auth,user.update_status_medicine)
 
+
+///////////////////////////////////////////////////////////////////////////////
+router.get("/profile_pharmacy/:id" , user.get_profile_pharmacy)
+
+
+
+
 export default router;  
