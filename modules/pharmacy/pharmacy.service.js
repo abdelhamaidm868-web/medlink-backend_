@@ -275,7 +275,7 @@ export const updatePharmacy = async (req, res) => {
       
         const [result] = await db.promise().query(
           "SELECT Password FROM pharmacy WHERE Id = ?",
-          [user_data.id]
+          [pharmacy_data.id]
         );
       
         const comparePassword = bcrypt.compareSync(
@@ -340,7 +340,7 @@ export const getPharmacyOrders = (req, res) => {
 
     // جلب الطلبات مع تفاصيل المستخدم والأدوية
     const ordersQuery = `
-      SELECT o.Id as orderId, o.OrderDate, o.OrderStatus, o.TotalPrice,
+      SELECT o.Id as orderId, o.OrderDate, o.OrderStatus, o.TotalPrice, o.UserPhone , o.UserAddress
              u.Id as userId, u.Name as userName, u.Email as userEmail,
              m.Id as medicineId, m.Name as medicineName, od.Quantity, od.Price
       FROM orders o
@@ -368,7 +368,9 @@ export const getPharmacyOrders = (req, res) => {
             user: {
               id: row.userId,
               name: row.userName,
-              email: row.userEmail
+              email: row.userEmail ,
+              phone: row.UserPhone,
+              address : row.UserAddress
             },
             medicines: []
           };
@@ -392,7 +394,7 @@ export const getPharmacyOrders = (req, res) => {
 
 export const deletemedicine = (req, res) => {
 const pharmacy_id = req.pharmacy_data.id;
-  const {medicine_id, Quantity } = req.body;
+  const {medicine_id } = req.body;
 
   const query = `
     SELECT pharmacymedicine.Quantity 
@@ -433,22 +435,22 @@ const pharmacy_id = req.pharmacy_data.id;
     }
 
     // ✅ حذف جزء
-    const newQuantity = currentQuantity - Quantity;
+    // const newQuantity = currentQuantity - Quantity;
 
-    const updateQuery = `
-      UPDATE pharmacymedicine 
-      SET Quantity = ? 
-      WHERE PharmacyId = ? AND MedicineId = ?
-    `;
+    // const updateQuery = `
+    //   UPDATE pharmacymedicine 
+    //   SET Quantity = ? 
+    //   WHERE PharmacyId = ? AND MedicineId = ?
+    // `;
 
-    db.execute(updateQuery, [newQuantity, pharmacy_id, medicine_id], (err) => {
-      if (err) return res.json({ msg: err.message });
+    // db.execute(updateQuery, [newQuantity, pharmacy_id, medicine_id], (err) => {
+    //   if (err) return res.json({ msg: err.message });
 
-      res.status(200).json({
-        msg: "Delete part of medicine Done",
-        remaining: newQuantity,
-      });
-    });
+    //   res.status(200).json({
+    //     msg: "Delete part of medicine Done",
+    //     remaining: newQuantity,
+    //   });
+    // });
   })}
 
   ////////////////////////////////////////////////////////////////////////////
@@ -459,6 +461,7 @@ const pharmacy_id = req.pharmacy_data.id;
   const query = `
     SELECT 
       medicine.Name,
+      medicine.Id,
       medicine.Category,
       medicine.Description,
       pharmacymedicine.Price,
