@@ -271,8 +271,26 @@ export const updatePharmacy = async (req, res) => {
         values.push(location);
       }
 
-      if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
+       if (password) {
+      
+        const [result] = await db.promise().query(
+          "SELECT Password FROM pharmacy WHERE Id = ?",
+          [user_data.id]
+        );
+      
+        const comparePassword = bcrypt.compareSync(
+          old_password,
+          result[0].Password
+        );
+      
+        if (!comparePassword) {
+          return res.status(400).json({
+            msg: "the old password is wrong"
+          });
+        }
+      
+        const hashedPassword = bcrypt.hashSync(password, 10);
+      
         fields.push("Password = ?");
         values.push(hashedPassword);
       }
