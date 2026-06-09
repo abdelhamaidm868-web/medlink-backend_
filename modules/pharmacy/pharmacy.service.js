@@ -377,7 +377,7 @@ export const getPharmacyOrders = (req, res) => {
   } catch (error) {
     return res
       .status(500)
-      .json({ success: true, message: error.message, stack: error.stack });
+      .json({ success: false, message: error.message, stack: error.stack });
   }
 };
 

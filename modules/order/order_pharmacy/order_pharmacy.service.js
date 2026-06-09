@@ -308,7 +308,7 @@ export const updateOrderStatus = async (req, res) => {
       message: error.message,
     });
   }
-};
+}; 
 // ----------------------------------dashboard-----------------------------------------------
   export const getDashboard = async (req, res) => {
     try {

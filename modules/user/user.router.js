@@ -22,7 +22,7 @@ router.put("/comment/:id" ,auth, user.updateComment)
 
 router.delete("/comment/:id",auth , user.deleteComment)
 
-
+ 
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -47,7 +47,6 @@ router.patch("/medicine_status",auth,user.update_status_medicine)
 
 ///////////////////////////////////////////////////////////////////////////////
 router.get("/profile_pharmacy/:id" , user.get_profile_pharmacy)
-
 
 
 
