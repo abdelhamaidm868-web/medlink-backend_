@@ -9,7 +9,7 @@ router.get("/pendingOrders",auth_pharmacy,phar_router.getPendingOrders)
 router.patch("/updateStatus/:orderId",auth_pharmacy,phar_router.updateOrderStatus)
 router.get("/dashboard",auth_pharmacy,phar_router.getDashboard)
 // router.get("/PharmacyOrders/:pharmacyId", phar_router.getPharmacyOrders );
-
+ 
 
 router.post("/offline_order/do_order" , auth_pharmacy , phar_router.do_order_offline)
 router.post("/offline_order/reseat" , auth_pharmacy , phar_router.reaset_order_offline)
@@ -17,4 +17,4 @@ router.post("/offline_order/reseat" , auth_pharmacy , phar_router.reaset_order_o
 
 
 
-export default router
+export default router  
