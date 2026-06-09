@@ -9,11 +9,10 @@ const router = Router()
 router.delete("/del_medicine",auth_middleware, phar_router.deletemedicine );
 
 
-
+ 
 ////////////////////////////////////////////////
-
-
 router.get("/getall_medcine",auth_middleware,phar_router.getall_medicine );
+router.delete("/delete-medicine/:id",auth_middleware , phar_router.delete_medicine);
 /////////////////////////////////////////////////////
 
 router.get("/search_medicine",auth_middleware,phar_router.search_medicine );
