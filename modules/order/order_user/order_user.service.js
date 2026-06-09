@@ -122,25 +122,34 @@ export const getOrderById = async (req, res) => {
     const { user_data } = req;
 
     const [rows] = await db.promise().query(`
-      SELECT 
-        o.Id AS order_id,
-        o.UserId,
-        o.PharmacyId,
-        o.OrderStatus,
-        o.OrderDate,
+     SELECT 
+    o.Id AS order_id,
+    o.UserId,
+    o.PharmacyId,
+    o.OrderStatus,
+    o.OrderDate,
 
-        od.MedicineId,
-        od.Quantity,
-        od.Price,
+    p.Name AS pharmacy_name,
+    p.Location AS pharmacy_location,
+    p.Phone AS pharmacy_phone,
+    p.Rate AS pharmacy_rate,
 
-        m.Name AS medicine_name,
+    od.MedicineId,
+    od.Quantity,
+    od.Price,
 
-        SUM(od.Quantity * od.Price) OVER (PARTITION BY o.Id) AS total_price
+    m.Name AS medicine_name,
 
-      FROM orders o
-      JOIN orderdetails od ON o.Id = od.OrderId
-      JOIN medicine m ON od.MedicineId = m.Id
-      WHERE o.UserId = ?;
+    SUM(od.Quantity * od.Price) OVER (PARTITION BY o.Id) AS total_price
+
+FROM orders o
+JOIN pharmacy p
+    ON o.PharmacyId = p.Id
+JOIN orderdetails od
+    ON o.Id = od.OrderId
+JOIN medicine m
+    ON od.MedicineId = m.Id
+WHERE o.UserId = ?;
     `, [user_data.id]);
 
     if (rows.length === 0) {
@@ -153,17 +162,24 @@ export const getOrderById = async (req, res) => {
       const quantity = Number(row.Quantity);
       const price = Number(row.Price);
 
-      if (!ordersMap[row.order_id]) {
-        ordersMap[row.order_id] = {
-          order_id: row.order_id,
-          user_id: row.UserId,
-          pharmacy_id: row.PharmacyId,
-          total_price: Number(row.total_price), // ✅ FIX هنا
-          status: row.OrderStatus,
-          order_date: row.OrderDate,
-          items: []
-        };
-      }
+if (!ordersMap[row.order_id]) {
+  ordersMap[row.order_id] = {
+    order_id: row.order_id,
+    user_id: row.UserId,
+
+    pharmacy_id: row.PharmacyId,
+    pharmacy_name: row.pharmacy_name,
+    pharmacy_location: row.pharmacy_location,
+    pharmacy_phone: row.pharmacy_phone,
+    pharmacy_rate: Number(row.pharmacy_rate),
+
+    total_price: Number(row.total_price),
+    status: row.OrderStatus,
+    order_date: row.OrderDate,
+
+    items: []
+  };
+}
 
       ordersMap[row.order_id].items.push({
         medicine_id: row.MedicineId,

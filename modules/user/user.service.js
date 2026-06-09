@@ -117,7 +117,7 @@ values.push(user_data.id)
     if (!lat || !lng) {
       return res.status(400).json({ msg: "lat/lng are required" });
     }
-
+ 
     // 2. استعلام الـ SQL مع إصلاح مشكلة الـ Floating Point باستخدام LEAST
     const query = `
       SELECT 
@@ -126,6 +126,8 @@ values.push(user_data.id)
         pharmacy.Phone as pharmacy_phaone,
         pharmacy.Rate as pharmacy_rate,
         pharmacy.Location,
+            COUNT(comment.id) as comments_count,
+
         ( 6371 * acos( LEAST(1.0, cos( radians(?) ) 
           * cos( radians( pharmacy.latitude ) ) 
           * cos( radians( pharmacy.longitude ) - radians(?) ) 
@@ -133,12 +135,15 @@ values.push(user_data.id)
           * sin( radians( pharmacy.latitude ) ) ) )
         ) AS distance
       FROM pharmacy
-      HAVING distance < ?
+      LEFT JOIN comment
+      ON comment.pharmacy_id = pharmacy.id
+      GROUP BY pharmacy.id
+
       ORDER BY distance ASC;
     `;
 
     // 3. تمرير المتغيرات
-    db.execute(query, [lat, lng, lat, radius], (error, result) => {
+    db.execute(query, [lat, lng, lat], (error, result) => {
       if (error) return res.status(500).json({ msg: error.message });
 
       res.status(200).json({ data: result });
