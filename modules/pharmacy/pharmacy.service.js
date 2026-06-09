@@ -90,6 +90,46 @@ export const addMedicineToPharmacy = (req, res) => {
 };
 ///////////////////////////////////////////////////////////////////////////
 
+export const deletemedicine = (req, res) => {
+  const pharmacy_id = req.pharmacy_data.id;
+  const { medicine_id, Quantity } = req.body;
+
+  const query = `
+    SELECT Quantity ,  MedicineId
+    FROM pharmacymedicine 
+    WHERE PharmacyId = ? AND MedicineId = ?
+  `;
+
+  db.execute(query, [pharmacy_id, medicine_id], (error, result) => {
+    if (error) return res.json({ msg: error.message });
+
+    if (result.length === 0) {
+      return res.status(404).json({ msg: "Medicine not found in your pharmacy " });
+    }
+
+      const deleteQuery = `
+        DELETE FROM pharmacymedicine 
+        WHERE PharmacyId = ? AND MedicineId = ?
+      `;
+
+      return db.execute(deleteQuery, [pharmacy_id, medicine_id], (err) => {
+        if (err) return res.json({ msg: err.message });
+
+        return res.status(200).json({
+          msg: "Deleted all medicine successfully from pharmacy ",
+        });
+      });
+    
+
+  
+  });
+};
+
+
+
+
+///////////////////////////////////////////////////
+
 export const addNewMedicine = (req, res) => {
   try {
     let { name, manufacturer, category, description } = req.body;
