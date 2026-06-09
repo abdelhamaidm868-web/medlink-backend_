@@ -3,6 +3,9 @@ import { db } from "../../../config/database.js";
 export const getAllOrders = async (req, res) => {
   try {
     const pharmacy_id = req.pharmacy_data.id;
+
+    console.log(req.pharmacy_data.id);
+    
     if (!pharmacy_id) {
       return res.status(400).json({ message: "Pharmacy ID is required" });
     }
@@ -10,7 +13,7 @@ export const getAllOrders = async (req, res) => {
     db.execute(checkPharmecy, [pharmacy_id], (error, result) => {
       if (error) {
         console.log(error);
-        return res.status(500).json({ message: "server error" });
+        return res.status(500).json({ message: error.message });
       }
 
       if (result.length === 0) {
@@ -23,6 +26,8 @@ export const getAllOrders = async (req, res) => {
         o.OrderDate,
         o.TotalPrice,
         o.OrderStatus,
+        o.UserPhone , 
+        o.UserAddress ,
 
         u.Id AS userId,
         u.Name AS userName,
@@ -74,6 +79,8 @@ export const getAllOrders = async (req, res) => {
                 id: row.userId,
                 name: row.userName,
                 email: row.userEmail,
+                phone: row.UserPhone,
+                address : row.UserAddress
               },
 
               medicines: [],
@@ -97,6 +104,8 @@ export const getAllOrders = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
 // -------------------------------get pending orders----------------------------------------
 export const getPendingOrders = async (req, res) => {
   try {
@@ -566,6 +575,7 @@ export const do_order_offline = async (req, res) => {
   try {
     const { pharmacy_data } = req;
     const { items, phone } = req.body;
+    const address = "offline"
     if (!items || items.length === 0 || !phone) {
       return res.status(400).json({ message: "Missing data" });
     }
@@ -617,8 +627,8 @@ export const do_order_offline = async (req, res) => {
     const [orderresult] = await db.promise().query(
       `INSERT INTO orders 
       (UserId, PharmacyId, TotalPrice, OrderStatus, UserPhone, UserAddress) 
-      VALUES (?, ?, ?, 'Completed', ?, "offline")`,
-      [1, pharmacy_data.id, totalPrice, phone],
+      VALUES (?, ?, ?, 'Completed', ?, ?)`,
+      [240054, pharmacy_data.id, totalPrice, phone , address],
     );
 
     const orderId = orderresult.insertId;
