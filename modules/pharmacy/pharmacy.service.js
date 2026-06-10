@@ -90,41 +90,139 @@ export const addMedicineToPharmacy = (req, res) => {
 };
 ///////////////////////////////////////////////////////////////////////////
 
+// export const deletemedicine = (req, res) => {
+//   const pharmacy_id = req.pharmacy_data.id;
+//   const { medicine_id, Quantity } = req.body;
+
+//   const query = `
+//     SELECT Quantity ,  MedicineId
+//     FROM pharmacymedicine 
+//     WHERE PharmacyId = ? AND MedicineId = ?
+//   `;
+
+//   db.execute(query, [pharmacy_id, medicine_id], (error, result) => {
+//     if (error) return res.json({ msg: error.message });
+
+//     if (result.length === 0) {
+//       return res.status(404).json({ msg: "Medicine not found in your pharmacy " });
+//     }
+
+//       const deleteQuery = `
+//         DELETE FROM pharmacymedicine 
+//         WHERE PharmacyId = ? AND MedicineId = ?
+//       `;
+
+//       return db.execute(deleteQuery, [pharmacy_id, medicine_id], (err) => {
+//         if (err) return res.json({ msg: err.message });
+
+//         return res.status(200).json({
+//           msg: "Deleted all medicine successfully from pharmacy ",
+//         });
+//       });
+    
+
+  
+//   });
+// };
 export const deletemedicine = (req, res) => {
+
   const pharmacy_id = req.pharmacy_data.id;
   const { medicine_id, Quantity } = req.body;
 
   const query = `
-    SELECT Quantity ,  MedicineId
-    FROM pharmacymedicine 
-    WHERE PharmacyId = ? AND MedicineId = ?
+    SELECT Quantity
+    FROM pharmacymedicine
+    WHERE PharmacyId = ?
+    AND MedicineId = ?
   `;
 
-  db.execute(query, [pharmacy_id, medicine_id], (error, result) => {
-    if (error) return res.json({ msg: error.message });
+  db.execute(
+    query,
+    [pharmacy_id, medicine_id],
+    (error, result) => {
 
-    if (result.length === 0) {
-      return res.status(404).json({ msg: "Medicine not found in your pharmacy " });
-    }
+      if (error) {
+        return res.status(500).json({
+          msg: error.message
+        });
+      }
 
-      const deleteQuery = `
-        DELETE FROM pharmacymedicine 
-        WHERE PharmacyId = ? AND MedicineId = ?
+      if (result.length === 0) {
+        return res.status(404).json({
+          msg: "Medicine not found"
+        });
+      }
+
+      const currentQuantity = result[0].Quantity;
+
+      if (Quantity > currentQuantity) {
+        return res.status(400).json({
+          msg: "Not enough stock"
+        });
+      }
+
+      // لو الكمية هتبقى صفر
+      if (Quantity === currentQuantity) {
+
+        const deleteQuery = `
+          DELETE FROM pharmacymedicine
+          WHERE PharmacyId = ?
+          AND MedicineId = ?
+        `;
+
+        return db.execute(
+          deleteQuery,
+          [pharmacy_id, medicine_id],
+          (err) => {
+
+            if (err) {
+              return res.status(500).json({
+                msg: err.message
+              });
+            }
+
+            return res.status(200).json({
+              msg: "Medicine removed completely"
+            });
+
+          }
+        );
+
+      }
+
+      const updateQuery = `
+        UPDATE pharmacymedicine
+        SET Quantity = Quantity - ?
+        WHERE PharmacyId = ?
+        AND MedicineId = ?
       `;
 
-      return db.execute(deleteQuery, [pharmacy_id, medicine_id], (err) => {
-        if (err) return res.json({ msg: err.message });
+      db.execute(
+        updateQuery,
+        [
+          Quantity,
+          pharmacy_id,
+          medicine_id
+        ],
+        (err) => {
 
-        return res.status(200).json({
-          msg: "Deleted all medicine successfully from pharmacy ",
-        });
-      });
-    
+          if (err) {
+            return res.status(500).json({
+              msg: err.message
+            });
+          }
 
-  
-  });
+          return res.status(200).json({
+            msg: "Stock updated successfully"
+          });
+
+        }
+      );
+
+    }
+  );
+
 };
-
 
 
 
