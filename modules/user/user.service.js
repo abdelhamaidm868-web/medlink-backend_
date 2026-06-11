@@ -511,58 +511,185 @@ export const deleteComment = async (req, res) => {
 
 //////////////////////////////////////////////////////////////////
 
-export const add_medicine = (req, res) => {
-  try {
-    const {user_data} = req
-  const { medicine_id, duration_days } = req.body;
+// export const add_medicine = (req, res) => {
+//   try {
+//     const {user_data} = req
+//   const { medicine_id, duration_days } = req.body;
  
 
 
+//     const query_check_has_medicine = `
+//       SELECT medicine.Id
+//       FROM usermedicine 
+//       JOIN medicine ON usermedicine.MedicineId = medicine.Id 
+//       WHERE usermedicine.UserID = ? AND medicine.Id = ?
+//     `;
+
+//     const values = [user_data.id, medicine_id];
+
+//     db.execute(query_check_has_medicine, values, (error, result) => {
+//       if (error) return res.status(500).json({ msg: error.message });
+
+//       if (result.length != 0) {
+//         return res
+//           .status(400)
+//           .json({ msg: "This medicine is already in your profile" });
+//       }
+
+//       const query = `
+//         INSERT INTO usermedicine 
+//         (MedicineId, UserID, start_date, duration_days, end_date)
+//         VALUES (?, ?, CURRENT_DATE, ?, DATE_ADD(CURRENT_DATE, INTERVAL ? DAY))
+//       `;
+
+//       const insertValues = [medicine_id, user_data.id, duration_days, duration_days];
+
+//       db.execute(query, insertValues, (error, result) => {
+//         if (error) return res.status(500).json({ msg: error.message });
+
+//         if (result.affectedRows != 0) {
+//           res.status(200).json({
+//             msg: "Add Medicine Done",
+//             duration_days,
+//           });
+//         } else {
+//           res.status(500).json({ msg: "Error in adding Medicine" });
+//         }
+//       });
+//     });
+  
+//   } catch (error) {
+//     res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
+//   }
+// };
+export const add_medicine = (req, res) => {
+  try {
+    const { user_data } = req;
+    const { medicine_id, duration_days } = req.body;
+
     const query_check_has_medicine = `
       SELECT medicine.Id
-      FROM usermedicine 
-      JOIN medicine ON usermedicine.MedicineId = medicine.Id 
+      FROM usermedicine
+      JOIN medicine ON usermedicine.MedicineId = medicine.Id
       WHERE usermedicine.UserID = ? AND medicine.Id = ?
     `;
 
-    const values = [user_data.id, medicine_id];
+    db.execute(
+      query_check_has_medicine,
+      [user_data.id, medicine_id],
+      (error, result) => {
+        if (error)
+          return res.status(500).json({ msg: error.message });
 
-    db.execute(query_check_has_medicine, values, (error, result) => {
-      if (error) return res.status(500).json({ msg: error.message });
-
-      if (result.length != 0) {
-        return res
-          .status(400)
-          .json({ msg: "This medicine is already in your profile" });
-      }
-
-      const query = `
-        INSERT INTO usermedicine 
-        (MedicineId, UserID, start_date, duration_days, end_date)
-        VALUES (?, ?, CURRENT_DATE, ?, DATE_ADD(CURRENT_DATE, INTERVAL ? DAY))
-      `;
-
-      const insertValues = [medicine_id, user_data.id, duration_days, duration_days];
-
-      db.execute(query, insertValues, (error, result) => {
-        if (error) return res.status(500).json({ msg: error.message });
-
-        if (result.affectedRows != 0) {
-          res.status(200).json({
-            msg: "Add Medicine Done",
-            duration_days,
+        if (result.length !== 0) {
+          return res.status(400).json({
+            msg: "This medicine is already in your profile",
           });
-        } else {
-          res.status(500).json({ msg: "Error in adding Medicine" });
         }
-      });
-    });
-  
+
+        // هات اسم الدواء الجديد
+        const getMedicineNameQuery = `
+          SELECT Name
+          FROM medicine
+          WHERE Id = ?
+        `;
+
+        db.execute(
+          getMedicineNameQuery,
+          [medicine_id],
+          (error, medicineResult) => {
+            if (error)
+              return res.status(500).json({ msg: error.message });
+
+            if (medicineResult.length === 0) {
+              return res.status(404).json({
+                msg: "Medicine not found",
+              });
+            }
+
+            const medicineName = medicineResult[0].Name;
+
+            // Check Drug Interactions
+            const interactionQuery = `
+              SELECT
+                m.Name AS existing_medicine,
+                di.Interaction_Description
+              FROM usermedicine um
+              JOIN medicine m
+                ON um.MedicineId = m.Id
+              JOIN druginteractions di
+                ON (
+                  (di.Drug_1 = m.Name AND di.Drug_2 = ?)
+                  OR
+                  (di.Drug_2 = m.Name AND di.Drug_1 = ?)
+                )
+              WHERE um.UserID = ?
+            `;
+
+            db.execute(
+              interactionQuery,
+              [medicineName, medicineName, user_data.id],
+              (error, interactionResult) => {
+                if (error)
+                  return res.status(500).json({ msg: error.message });
+
+                // لو فيه تعارض امنع الإضافة
+                if (interactionResult.length > 0) {
+                  return res.status(400).json({
+                    msg: "Drug interaction detected",
+                    interactions: interactionResult,
+                  });
+                }
+
+                // Add Medicine
+                const insertQuery = `
+                  INSERT INTO usermedicine
+                  (MedicineId, UserID, start_date, duration_days, end_date)
+                  VALUES (?, ?, CURRENT_DATE, ?, DATE_ADD(CURRENT_DATE, INTERVAL ? DAY))
+                `;
+
+                const insertValues = [
+                  medicine_id,
+                  user_data.id,
+                  duration_days,
+                  duration_days,
+                ];
+
+                db.execute(
+                  insertQuery,
+                  insertValues,
+                  (error, result) => {
+                    if (error)
+                      return res.status(500).json({
+                        msg: error.message,
+                      });
+
+                    if (result.affectedRows !== 0) {
+                      return res.status(200).json({
+                        msg: "Add Medicine Done",
+                        duration_days,
+                      });
+                    }
+
+                    return res.status(500).json({
+                      msg: "Error in adding Medicine",
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
   } catch (error) {
-    res.status(500).json({sucess:false , msg :error.message , stack : error.stack})
+    res.status(500).json({
+      success: false,
+      msg: error.message,
+      stack: error.stack,
+    });
   }
 };
-
 //////////////////////////////////////////////////////////////////
 export const get_medicine_user = (req, res) => {
 try {
