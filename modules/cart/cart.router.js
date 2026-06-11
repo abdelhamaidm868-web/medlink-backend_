@@ -22,3 +22,4 @@ router.delete("/clear",authMiddleware,cartService.clearCart);
 router.post("/checkout",authMiddleware,cartService.checkoutCart);
 
 export default router;
+

@@ -1,9 +1,10 @@
 import { db } from "../../config/database.js";
 
+
 // export const addToCart = (req, res) => {
 
 // const userId = req.user_data.id;
-// console.log(req.user_data);
+
 // const {
 // medicineId,
 // pharmacyId,
@@ -21,11 +22,6 @@ import { db } from "../../config/database.js";
 //     WHERE UserId = ?
 //   `;
 
-// console.log("userId =", userId);
-// console.log("medicineId =", medicineId);
-// console.log("pharmacyId =", pharmacyId);
-// console.log("quantity =", quantity);
-
 // db.execute(
 // getCartQuery,
 // [userId],
@@ -39,11 +35,13 @@ import { db } from "../../config/database.js";
 
 //   const continueWithCart = (cartId) => {
 
+//     // التأكد أن الكارت من صيدلية واحدة
 //     const pharmacyCheckQuery = `
-//   SELECT DISTINCT PharmacyId
-//   FROM cart_items
-//   WHERE CartId = ?
-// `;
+//       SELECT DISTINCT PharmacyId
+//       FROM cart_items
+//       WHERE CartId = ?
+//     `;
+
 //     db.execute(
 //       pharmacyCheckQuery,
 //       [cartId],
@@ -61,22 +59,22 @@ import { db } from "../../config/database.js";
 //         ) {
 //           return res.status(400).json({
 //             message:
-//             "Cart can contain medicines from only one pharmacy"
+//               "Cart can contain medicines from only one pharmacy"
 //           });
 //         }
 
-//         // هل الدواء موجود بالفعل؟
-//         const itemCheckQuery = `
+//         // التأكد أن الدواء موجود في الصيدلية
+//         const medicineAvailabilityQuery = `
 //           SELECT *
-//           FROM cart_items
-//           WHERE CartId = ?
+//           FROM pharmacymedicine
+//           WHERE PharmacyId = ?
 //           AND MedicineId = ?
 //         `;
 
 //         db.execute(
-//           itemCheckQuery,
-//           [cartId, medicineId],
-//           (err, itemResult) => {
+//           medicineAvailabilityQuery,
+//           [pharmacyId, medicineId],
+//           (err, medicineResult) => {
 
 //             if (err) {
 //               return res.status(500).json({
@@ -84,61 +82,36 @@ import { db } from "../../config/database.js";
 //               });
 //             }
 
-//             // موجود بالفعل => زود الكمية
-//             if (itemResult.length > 0) {
-
-//               const updateQuery = `
-//                 UPDATE cart_items
-//                 SET Quantity = Quantity + ?
-//                 WHERE CartId = ?
-//                 AND MedicineId = ?
-//               `;
-
-//               return db.execute(
-//                 updateQuery,
-//                 [
-//                   quantity,
-//                   cartId,
-//                   medicineId
-//                 ],
-//                 (err) => {
-
-//                   if (err) {
-//                     return res.status(500).json({
-//                       message: err.message
-//                     });
-//                   }
-
-//                   return res.status(200).json({
-//                     message:
-//                     "Cart updated successfully"
-//                   });
-
-//                 }
-//               );
+//             if (medicineResult.length === 0) {
+//               return res.status(404).json({
+//                 message:
+//                   "Medicine not available in this pharmacy"
+//               });
 //             }
 
-//             // إضافة منتج جديد
-//             const insertItemQuery = `
-//               INSERT INTO cart_items
-//               (
-//                 CartId,
-//                 MedicineId,
-//                 PharmacyId,
-//                 Quantity
-//               )
-//               VALUES (?, ?, ?, ?)
+//             // التأكد من الكمية
+//             if (
+//               quantity >
+//               medicineResult[0].Quantity
+//             ) {
+//               return res.status(400).json({
+//                 message:
+//                   `Only ${medicineResult[0].Quantity} available in stock`
+//               });
+//             }
+
+//             // هل الدواء موجود بالفعل؟
+//             const itemCheckQuery = `
+//               SELECT *
+//               FROM cart_items
+//               WHERE CartId = ?
+//               AND MedicineId = ?
 //             `;
 
 //             db.execute(
-//               insertItemQuery,
-//               [
-//                 cartId,
-//                 medicineId,
-//                 pharmacyId,
-//                 quantity
-//               ],
-//               (err) => {
+//               itemCheckQuery,
+//               [cartId, medicineId],
+//               (err, itemResult) => {
 
 //                 if (err) {
 //                   return res.status(500).json({
@@ -146,10 +119,89 @@ import { db } from "../../config/database.js";
 //                   });
 //                 }
 
-//                 return res.status(201).json({
-//                   message:
-//                   "Medicine added to cart successfully"
-//                 });
+//                 // موجود بالفعل => زود الكمية
+//                 if (itemResult.length > 0) {
+
+//                   const newQuantity =
+//                     itemResult[0].Quantity +
+//                     Number(quantity);
+
+//                   if (
+//                     newQuantity >
+//                     medicineResult[0].Quantity
+//                   ) {
+//                     return res.status(400).json({
+//                       message:
+//                         `Only ${medicineResult[0].Quantity} available in stock`
+//                     });
+//                   }
+
+//                   const updateQuery = `
+//                     UPDATE cart_items
+//                     SET Quantity = ?
+//                     WHERE CartId = ?
+//                     AND MedicineId = ?
+//                   `;
+
+//                   return db.execute(
+//                     updateQuery,
+//                     [
+//                       newQuantity,
+//                       cartId,
+//                       medicineId
+//                     ],
+//                     (err) => {
+
+//                       if (err) {
+//                         return res.status(500).json({
+//                           message: err.message
+//                         });
+//                       }
+
+//                       return res.status(200).json({
+//                         message:
+//                           "Cart updated successfully"
+//                       });
+
+//                     }
+//                   );
+//                 }
+
+//                 // إضافة دواء جديد للكارت
+//                 const insertItemQuery = `
+//                   INSERT INTO cart_items
+//                   (
+//                     CartId,
+//                     MedicineId,
+//                     PharmacyId,
+//                     Quantity
+//                   )
+//                   VALUES (?, ?, ?, ?)
+//                 `;
+
+//                 db.execute(
+//                   insertItemQuery,
+//                   [
+//                     cartId,
+//                     medicineId,
+//                     pharmacyId,
+//                     quantity
+//                   ],
+//                   (err) => {
+
+//                     if (err) {
+//                       return res.status(500).json({
+//                         message: err.message
+//                       });
+//                     }
+
+//                     return res.status(201).json({
+//                       message:
+//                         "Medicine added to cart successfully"
+//                     });
+
+//                   }
+//                 );
 
 //               }
 //             );
@@ -162,14 +214,16 @@ import { db } from "../../config/database.js";
 
 //   };
 
-//   // لو عنده cart
+//   // لو الكارت موجودة
 //   if (cartResult.length > 0) {
 
-//     continueWithCart(cartResult[0].Id);
+//     continueWithCart(
+//       cartResult[0].Id
+//     );
 
 //   } else {
 
-//     // إنشاء cart جديدة
+//     // إنشاء كارت جديدة
 //     const createCartQuery = `
 //       INSERT INTO cart (UserId)
 //       VALUES (?)
@@ -186,7 +240,9 @@ import { db } from "../../config/database.js";
 //           });
 //         }
 
-//         continueWithCart(result.insertId);
+//         continueWithCart(
+//           result.insertId
+//         );
 
 //       }
 //     );
@@ -198,81 +254,53 @@ import { db } from "../../config/database.js";
 // );
 
 // };
-
+ 
 export const addToCart = (req, res) => {
 
-const userId = req.user_data.id;
+  const userId = req.user_data.id;
 
-const {
-medicineId,
-pharmacyId,
-quantity
-} = req.body;
+  const {
+    medicineId,
+    pharmacyId,
+    quantity
+  } = req.body;
 
-if (!medicineId || !pharmacyId || !quantity) {
-return res.status(400).json({
-message: "All fields are required"
-});
-}
+  if (!medicineId || !pharmacyId || !quantity) {
+    return res.status(400).json({
+      message: "All fields are required"
+    });
+  }
 
-const getCartQuery = `     SELECT *
+  const getCartQuery = `
+    SELECT *
     FROM cart
     WHERE UserId = ?
   `;
 
-db.execute(
-getCartQuery,
-[userId],
-(err, cartResult) => {
+  db.execute(
+    getCartQuery,
+    [userId],
+    (err, cartResult) => {
 
-  if (err) {
-    return res.status(500).json({
-      message: err.message
-    });
-  }
+      if (err) {
+        return res.status(500).json({
+          message: err.message
+        });
+      }
 
-  const continueWithCart = (cartId) => {
+      const continueWithCart = (cartId) => {
 
-    // التأكد أن الكارت من صيدلية واحدة
-    const pharmacyCheckQuery = `
-      SELECT DISTINCT PharmacyId
-      FROM cart_items
-      WHERE CartId = ?
-    `;
-
-    db.execute(
-      pharmacyCheckQuery,
-      [cartId],
-      (err, pharmacyResult) => {
-
-        if (err) {
-          return res.status(500).json({
-            message: err.message
-          });
-        }
-
-        if (
-          pharmacyResult.length > 0 &&
-          pharmacyResult[0].PharmacyId != pharmacyId
-        ) {
-          return res.status(400).json({
-            message:
-              "Cart can contain medicines from only one pharmacy"
-          });
-        }
-
-        // التأكد أن الدواء موجود في الصيدلية
-        const medicineAvailabilityQuery = `
-          SELECT *
-          FROM pharmacymedicine
-          WHERE PharmacyId = ?
-          AND MedicineId = ?
+        // التأكد أن الكارت من صيدلية واحدة
+        const pharmacyCheckQuery = `
+          SELECT DISTINCT PharmacyId
+          FROM cart_items
+          WHERE CartId = ?
         `;
 
         db.execute(
-          medicineAvailabilityQuery,
-          [pharmacyId, medicineId],
-          (err, medicineResult) => {
+          pharmacyCheckQuery,
+          [cartId],
+          (err, pharmacyResult) => {
 
             if (err) {
               return res.status(500).json({
@@ -280,36 +308,28 @@ getCartQuery,
               });
             }
 
-            if (medicineResult.length === 0) {
-              return res.status(404).json({
-                message:
-                  "Medicine not available in this pharmacy"
-              });
-            }
-
-            // التأكد من الكمية
             if (
-              quantity >
-              medicineResult[0].Quantity
+              pharmacyResult.length > 0 &&
+              pharmacyResult[0].PharmacyId != pharmacyId
             ) {
               return res.status(400).json({
                 message:
-                  `Only ${medicineResult[0].Quantity} available in stock`
+                  "Cart can contain medicines from only one pharmacy"
               });
             }
 
-            // هل الدواء موجود بالفعل؟
-            const itemCheckQuery = `
+            // التأكد أن الدواء موجود في الصيدلية
+            const medicineAvailabilityQuery = `
               SELECT *
-              FROM cart_items
-              WHERE CartId = ?
+              FROM pharmacymedicine
+              WHERE PharmacyId = ?
               AND MedicineId = ?
             `;
 
             db.execute(
-              itemCheckQuery,
-              [cartId, medicineId],
-              (err, itemResult) => {
+              medicineAvailabilityQuery,
+              [pharmacyId, medicineId],
+              (err, medicineResult) => {
 
                 if (err) {
                   return res.status(500).json({
@@ -317,75 +337,57 @@ getCartQuery,
                   });
                 }
 
-                // موجود بالفعل => زود الكمية
-                if (itemResult.length > 0) {
-
-                  const newQuantity =
-                    itemResult[0].Quantity +
-                    Number(quantity);
-
-                  if (
-                    newQuantity >
-                    medicineResult[0].Quantity
-                  ) {
-                    return res.status(400).json({
-                      message:
-                        `Only ${medicineResult[0].Quantity} available in stock`
-                    });
-                  }
-
-                  const updateQuery = `
-                    UPDATE cart_items
-                    SET Quantity = ?
-                    WHERE CartId = ?
-                    AND MedicineId = ?
-                  `;
-
-                  return db.execute(
-                    updateQuery,
-                    [
-                      newQuantity,
-                      cartId,
-                      medicineId
-                    ],
-                    (err) => {
-
-                      if (err) {
-                        return res.status(500).json({
-                          message: err.message
-                        });
-                      }
-
-                      return res.status(200).json({
-                        message:
-                          "Cart updated successfully"
-                      });
-
-                    }
-                  );
+                if (medicineResult.length === 0) {
+                  return res.status(404).json({
+                    message:
+                      "Medicine not available in this pharmacy"
+                  });
                 }
 
-                // إضافة دواء جديد للكارت
-                const insertItemQuery = `
-                  INSERT INTO cart_items
-                  (
-                    CartId,
-                    MedicineId,
-                    PharmacyId,
-                    Quantity
-                  )
-                  VALUES (?, ?, ?, ?)
+                if (
+                  quantity >
+                  medicineResult[0].Quantity
+                ) {
+                  return res.status(400).json({
+                    message:
+                      `Only ${medicineResult[0].Quantity} available in stock`
+                  });
+                }
+
+                // التحقق من الـ Drug Interaction
+                const interactionQuery = `
+                  SELECT
+                    umm.Name AS UserMedicine,
+                    di.Interaction_Description
+                  FROM usermedicine um
+
+                  JOIN medicine umm
+                    ON umm.Id = um.MedicineId
+
+                  JOIN medicine cartMed
+                    ON cartMed.Id = ?
+
+                  JOIN druginteractions di
+                    ON (
+                      (
+                        LOWER(di.Drug_1) = LOWER(cartMed.Name)
+                        AND LOWER(di.Drug_2) = LOWER(umm.Name)
+                      )
+                      OR
+                      (
+                        LOWER(di.Drug_2) = LOWER(cartMed.Name)
+                        AND LOWER(di.Drug_1) = LOWER(umm.Name)
+                      )
+                    )
+
+                  WHERE um.UserID = ?
+                  AND um.status = 'active'
                 `;
 
                 db.execute(
-                  insertItemQuery,
-                  [
-                    cartId,
-                    medicineId,
-                    pharmacyId,
-                    quantity
-                  ],
-                  (err) => {
+                  interactionQuery,
+                  [medicineId, userId],
+                  (err, interactions) => {
 
                     if (err) {
                       return res.status(500).json({
@@ -393,10 +395,124 @@ getCartQuery,
                       });
                     }
 
-                    return res.status(201).json({
-                      message:
-                        "Medicine added to cart successfully"
-                    });
+                    const warningData = interactions.map(item => ({
+                      userMedicine: item.UserMedicine,
+                      description: item.Interaction_Description
+                    }));
+
+                    // هل الدواء موجود بالفعل؟
+                    const itemCheckQuery = `
+                      SELECT *
+                      FROM cart_items
+                      WHERE CartId = ?
+                      AND MedicineId = ?
+                    `;
+
+                    db.execute(
+                      itemCheckQuery,
+                      [cartId, medicineId],
+                      (err, itemResult) => {
+
+                        if (err) {
+                          return res.status(500).json({
+                            message: err.message
+                          });
+                        }
+
+                        // موجود بالفعل
+                        if (itemResult.length > 0) {
+
+                          const newQuantity =
+                            itemResult[0].Quantity +
+                            Number(quantity);
+
+                          if (
+                            newQuantity >
+                            medicineResult[0].Quantity
+                          ) {
+                            return res.status(400).json({
+                              message:
+                                `Only ${medicineResult[0].Quantity} available in stock`
+                            });
+                          }
+
+                          const updateQuery = `
+                            UPDATE cart_items
+                            SET Quantity = ?
+                            WHERE CartId = ?
+                            AND MedicineId = ?
+                          `;
+
+                          return db.execute(
+                            updateQuery,
+                            [
+                              newQuantity,
+                              cartId,
+                              medicineId
+                            ],
+                            (err) => {
+
+                              if (err) {
+                                return res.status(500).json({
+                                  message: err.message
+                                });
+                              }
+
+                              return res.status(200).json({
+                                message:
+                                  "Cart updated successfully",
+                                warning:
+                                  warningData.length > 0,
+                                interactions:
+                                  warningData
+                              });
+
+                            }
+                          );
+                        }
+
+                        // إضافة دواء جديد للكارت
+                        const insertItemQuery = `
+                          INSERT INTO cart_items
+                          (
+                            CartId,
+                            MedicineId,
+                            PharmacyId,
+                            Quantity
+                          )
+                          VALUES (?, ?, ?, ?)
+                        `;
+
+                        db.execute(
+                          insertItemQuery,
+                          [
+                            cartId,
+                            medicineId,
+                            pharmacyId,
+                            quantity
+                          ],
+                          (err) => {
+
+                            if (err) {
+                              return res.status(500).json({
+                                message: err.message
+                              });
+                            }
+
+                            return res.status(201).json({
+                              message:
+                                "Medicine added to cart successfully",
+                              warning:
+                                warningData.length > 0,
+                              interactions:
+                                warningData
+                            });
+
+                          }
+                        );
+
+                      }
+                    );
 
                   }
                 );
@@ -407,52 +523,46 @@ getCartQuery,
           }
         );
 
-      }
-    );
+      };
 
-  };
-
-  // لو الكارت موجودة
-  if (cartResult.length > 0) {
-
-    continueWithCart(
-      cartResult[0].Id
-    );
-
-  } else {
-
-    // إنشاء كارت جديدة
-    const createCartQuery = `
-      INSERT INTO cart (UserId)
-      VALUES (?)
-    `;
-
-    db.execute(
-      createCartQuery,
-      [userId],
-      (err, result) => {
-
-        if (err) {
-          return res.status(500).json({
-            message: err.message
-          });
-        }
+      // لو عنده cart
+      if (cartResult.length > 0) {
 
         continueWithCart(
-          result.insertId
+          cartResult[0].Id
+        );
+
+      } else {
+
+        const createCartQuery = `
+          INSERT INTO cart (UserId)
+          VALUES (?)
+        `;
+
+        db.execute(
+          createCartQuery,
+          [userId],
+          (err, result) => {
+
+            if (err) {
+              return res.status(500).json({
+                message: err.message
+              });
+            }
+
+            continueWithCart(
+              result.insertId
+            );
+
+          }
         );
 
       }
-    );
 
-  }
-
-}
-
-);
+    }
+  );
 
 };
-
 
 export const getCart = (req, res) => {
 
@@ -854,3 +964,203 @@ export const checkoutCart = (req, res) => {
   );
 
 };
+
+
+// export const addToCart = (req, res) => {
+
+// const userId = req.user_data.id;
+// console.log(req.user_data);
+// const {
+// medicineId,
+// pharmacyId,
+// quantity
+// } = req.body;
+
+// if (!medicineId || !pharmacyId || !quantity) {
+// return res.status(400).json({
+// message: "All fields are required"
+// });
+// }
+
+// const getCartQuery = `     SELECT *
+//     FROM cart
+//     WHERE UserId = ?
+//   `;
+
+// console.log("userId =", userId);
+// console.log("medicineId =", medicineId);
+// console.log("pharmacyId =", pharmacyId);
+// console.log("quantity =", quantity);
+
+// db.execute(
+// getCartQuery,
+// [userId],
+// (err, cartResult) => {
+
+//   if (err) {
+//     return res.status(500).json({
+//       message: err.message
+//     });
+//   }
+
+//   const continueWithCart = (cartId) => {
+
+//     const pharmacyCheckQuery = `
+//   SELECT DISTINCT PharmacyId
+//   FROM cart_items
+//   WHERE CartId = ?
+// `;
+//     db.execute(
+//       pharmacyCheckQuery,
+//       [cartId],
+//       (err, pharmacyResult) => {
+
+//         if (err) {
+//           return res.status(500).json({
+//             message: err.message
+//           });
+//         }
+
+//         if (
+//           pharmacyResult.length > 0 &&
+//           pharmacyResult[0].PharmacyId != pharmacyId
+//         ) {
+//           return res.status(400).json({
+//             message:
+//             "Cart can contain medicines from only one pharmacy"
+//           });
+//         }
+
+//         // هل الدواء موجود بالفعل؟
+//         const itemCheckQuery = `
+//           SELECT *
+//           FROM cart_items
+//           WHERE CartId = ?
+//           AND MedicineId = ?
+//         `;
+
+//         db.execute(
+//           itemCheckQuery,
+//           [cartId, medicineId],
+//           (err, itemResult) => {
+
+//             if (err) {
+//               return res.status(500).json({
+//                 message: err.message
+//               });
+//             }
+
+//             // موجود بالفعل => زود الكمية
+//             if (itemResult.length > 0) {
+
+//               const updateQuery = `
+//                 UPDATE cart_items
+//                 SET Quantity = Quantity + ?
+//                 WHERE CartId = ?
+//                 AND MedicineId = ?
+//               `;
+
+//               return db.execute(
+//                 updateQuery,
+//                 [
+//                   quantity,
+//                   cartId,
+//                   medicineId
+//                 ],
+//                 (err) => {
+
+//                   if (err) {
+//                     return res.status(500).json({
+//                       message: err.message
+//                     });
+//                   }
+
+//                   return res.status(200).json({
+//                     message:
+//                     "Cart updated successfully"
+//                   });
+
+//                 }
+//               );
+//             }
+
+//             // إضافة منتج جديد
+//             const insertItemQuery = `
+//               INSERT INTO cart_items
+//               (
+//                 CartId,
+//                 MedicineId,
+//                 PharmacyId,
+//                 Quantity
+//               )
+//               VALUES (?, ?, ?, ?)
+//             `;
+
+//             db.execute(
+//               insertItemQuery,
+//               [
+//                 cartId,
+//                 medicineId,
+//                 pharmacyId,
+//                 quantity
+//               ],
+//               (err) => {
+
+//                 if (err) {
+//                   return res.status(500).json({
+//                     message: err.message
+//                   });
+//                 }
+
+//                 return res.status(201).json({
+//                   message:
+//                   "Medicine added to cart successfully"
+//                 });
+
+//               }
+//             );
+
+//           }
+//         );
+
+//       }
+//     );
+
+//   };
+
+//   // لو عنده cart
+//   if (cartResult.length > 0) {
+
+//     continueWithCart(cartResult[0].Id);
+
+//   } else {
+
+//     // إنشاء cart جديدة
+//     const createCartQuery = `
+//       INSERT INTO cart (UserId)
+//       VALUES (?)
+//     `;
+
+//     db.execute(
+//       createCartQuery,
+//       [userId],
+//       (err, result) => {
+
+//         if (err) {
+//           return res.status(500).json({
+//             message: err.message
+//           });
+//         }
+
+//         continueWithCart(result.insertId);
+
+//       }
+//     );
+
+//   }
+
+// }
+
+// );
+
+// };
