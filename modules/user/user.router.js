@@ -49,5 +49,7 @@ router.patch("/medicine_status",auth,user.update_status_medicine)
 router.get("/profile_pharmacy/:id" , user.get_profile_pharmacy)
 
 
+router.get("/medicine_pharmacy/:id" , user.get_medicine_pharmacy)
+
 
 export default router;  

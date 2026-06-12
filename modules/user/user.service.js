@@ -1019,3 +1019,50 @@ try {
 
 }
 
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+export const get_medicine_pharmacy = (req, res)=>{
+
+try {
+  const {id} = req.params
+
+  if (!id) {
+    return res.status(400).json({ message: "Pharmacy ID is required" });
+  }
+
+  // 1️⃣ نجيب بيانات الصيدلية
+  const pharmacyQuery = `
+    SELECT MedicineId , Price , medicine.Name as medicine_name , Manufacturer , Category , Description 
+    FROM pharmacymedicine join medicine 
+    on pharmacymedicine.MedicineId = medicine.Id
+    WHERE PharmacyId = ?
+  `;
+
+  db.execute(pharmacyQuery, [id], (error, pharmacyResult) => {
+    if (error) return res.status(500).json({ msg: error.message });
+
+    if (pharmacyResult.length === 0) {
+      return res.status(404).json({ message: "Pharmacy not has medicine " });
+    }
+
+   res.status(200).json({msg:"sucess" , data:pharmacyResult})
+
+
+  })
+}catch (error) {
+ res.status(500).json( {sucess:false , msg : error.message , stack :error.stack}) 
+}
+
+}

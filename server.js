@@ -19,6 +19,7 @@ import order_router_user from "./modules/order/order_user/order_user.router.js"
 import order_router_pharmacy from "./modules/order/order_pharmacy/order_pharmacy.router.js"
 import pharmacy_router from "./modules/pharmacy/pharmacy.router.js"
 import cartRouter from "./modules/cart/cart.router.js";
+import admin_router from "./modules/admin/admin.router.js"
 
  
 await DBconnection()
@@ -36,6 +37,7 @@ app.use("/pharmacy/Mangeorder" , order_router_pharmacy)
 app.use("/user" , user_router)
 app.use ("/pharmacy" , pharmacy_router)
 app.use("/cart", cartRouter);
+app.use("/admin" , admin_router)
 //////////////////////////////////////////
 app.get('/', (req, res) => {
   res.send('Server working')
