@@ -574,17 +574,28 @@ const query = `     SELECT
       ci.Quantity,
       pm.Price,
       (ci.Quantity * pm.Price) AS ItemTotal,
-      ci.PharmacyId
+
+      p.Id AS PharmacyId,
+      p.Name AS PharmacyName,
+      p.Location AS PharmacyLocation
+
     FROM cart c
+
     JOIN cart_items ci
       ON c.Id = ci.CartId
+
     JOIN medicine m
       ON m.Id = ci.MedicineId
+
     JOIN pharmacymedicine pm
       ON pm.MedicineId = ci.MedicineId
       AND pm.PharmacyId = ci.PharmacyId
+
+    JOIN pharmacy p
+      ON p.Id = ci.PharmacyId
+
     WHERE c.UserId = ?
-  `;
+`;
 
 db.execute(
 query,
