@@ -570,26 +570,30 @@ export const add_medicine = (req, res) => {
     const query_check_has_medicine = `
       SELECT medicine.Id
       FROM usermedicine
-      JOIN medicine ON usermedicine.MedicineId = medicine.Id
-      WHERE usermedicine.UserID = ? AND medicine.Id = ?
+      JOIN medicine
+        ON usermedicine.MedicineId = medicine.Id
+      WHERE usermedicine.UserID = ? 
+        AND medicine.Id = ?
     `;
 
     db.execute(
       query_check_has_medicine,
       [user_data.id, medicine_id],
       (error, result) => {
-        if (error)
+        if (error) {
           return res.status(500).json({ msg: error.message });
+        }
 
-        console.log(result);
+        console.log(user_data.id);
+        console.log(medicine_id);
         
-        if (result.length !== 0) {
+        if (result.length > 0) {
           return res.status(400).json({
             msg: "This medicine is already in your profile",
           });
         }
 
-        // هات اسم الدواء الجديد
+        // Get Medicine Name
         const getMedicineNameQuery = `
           SELECT Name
           FROM medicine
@@ -600,8 +604,9 @@ export const add_medicine = (req, res) => {
           getMedicineNameQuery,
           [medicine_id],
           (error, medicineResult) => {
-            if (error)
+            if (error) {
               return res.status(500).json({ msg: error.message });
+            }
 
             if (medicineResult.length === 0) {
               return res.status(404).json({
@@ -610,7 +615,7 @@ export const add_medicine = (req, res) => {
             }
 
             const medicineName = medicineResult[0].Name;
-// *************************************************************************
+
             // Check Drug Interactions
             const interactionQuery = `
               SELECT
@@ -632,68 +637,71 @@ export const add_medicine = (req, res) => {
               interactionQuery,
               [medicineName, medicineName, user_data.id],
               (error, interactionResult) => {
-                if (error)
-                  return res.status(500).json({ msg: error.message });
+                if (error) {
+                  return res.status(500).json({
+                    msg: error.message,
+                  });
+                }
 
-
-
-const query_substation = `
-select SubstituteName from drugsubstitutes where MedicineId = ? 
-`
-
-db.execute(query_substation , [medicine_id] , (error, result)=>{
-
-  if (error)
-    return res.status(500).json({msg:error.message})
-
-  
-                  // لو فيه تعارض امنع الإضافة
-                  if (interactionResult.length > 0) {
-                    return res.status(400).json({
-                      msg: "Drug interaction detected",
-                      interactions: interactionResult,
-                    subs : result
-                    });
-                  }
-  
-})
-
-
-
-// **********************************************************************
-                // Add Medicine
-                const insertQuery = `
-                  INSERT INTO usermedicine
-                  (MedicineId, UserID, start_date, duration_days, end_date)
-                  VALUES (?, ?, CURRENT_DATE, ?, DATE_ADD(CURRENT_DATE, INTERVAL ? DAY))
+                // Get Substitutes
+                const query_substitute = `
+                  SELECT SubstituteName
+                  FROM drugsubstitutes
+                  WHERE MedicineId = ?
                 `;
 
-                const insertValues = [
-                  medicine_id,
-                  user_data.id,
-                  duration_days,
-                  duration_days,
-                ];
-
                 db.execute(
-                  insertQuery,
-                  insertValues,
-                  (error, result) => {
-                    if (error)
+                  query_substitute,
+                  [medicine_id],
+                  (error, substituteResult) => {
+                    if (error) {
                       return res.status(500).json({
                         msg: error.message,
                       });
+                    }
 
-                    if (result.affectedRows !== 0) {
-                      return res.status(200).json({
-                        msg: "Add Medicine Done",
-                        duration_days,
+                    // لو فيه تعارض امنع الإضافة
+                    if (interactionResult.length > 0) {
+                      return res.status(400).json({
+                        msg: "Drug interaction detected",
+                        interactions: interactionResult,
+                        substitutes: substituteResult,
                       });
                     }
 
-                    return res.status(500).json({
-                      msg: "Error in adding Medicine",
-                    });
+                    // Add Medicine
+                    const insertQuery = `
+                      INSERT INTO usermedicine
+                      (MedicineId, UserID, start_date, duration_days, end_date)
+                      VALUES (
+                        ?, ?, CURRENT_DATE, ?, 
+                        DATE_ADD(CURRENT_DATE, INTERVAL ? DAY)
+                      )
+                    `;
+
+                    const insertValues = [
+                      medicine_id,
+                      user_data.id,
+                      duration_days,
+                      duration_days,
+                    ];
+
+                    db.execute(
+                      insertQuery,
+                      insertValues,
+                      (error, insertResult) => {
+                        if (error) {
+                          return res.status(500).json({
+                            msg: error.message,
+                          });
+                        }
+
+                        return res.status(200).json({
+                          msg: "Add Medicine Done",
+                          duration_days,
+                        });
+                      }
+                    );
                   }
                 );
               }
@@ -703,7 +711,7 @@ db.execute(query_substation , [medicine_id] , (error, result)=>{
       }
     );
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       msg: error.message,
       stack: error.stack,

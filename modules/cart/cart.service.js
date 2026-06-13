@@ -620,12 +620,21 @@ query,
     totalPrice += Number(item.ItemTotal);
   });
 
-  return res.status(200).json({
-    
-    data:[ {PharmacyId : result[0].PharmacyId ,PharmacyLocation : result[0].PharmacyLocation , PharmacyName:result[0].PharmacyName}] ,
-    items: [{MedicineId :result[0].MedicineId , Name:result[0].Name , Quantity:result[0].Quantity ,Price:result[0].Price , ItemTotal:result[0].ItemTotal}],
-    totalPrice
-  });
+ return res.status(200).json({
+  data: {
+    PharmacyId: result[0].PharmacyId,
+    PharmacyLocation: result[0].PharmacyLocation,
+    PharmacyName: result[0].PharmacyName
+  },
+  items: result.map(item => ({
+    MedicineId: item.MedicineId,
+    Name: item.Name,
+    Quantity: item.Quantity,
+    Price: item.Price,
+    ItemTotal: item.ItemTotal
+  })),
+  totalPrice
+});
 
 }
 
