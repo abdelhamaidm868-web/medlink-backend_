@@ -333,7 +333,7 @@ export const updateOrderStatus = async (req, res) => {
         FROM orders
         WHERE PharmacyId = ?
         AND OrderStatus = 'Pending'
-        AND DATE(OrderDate) = CURDATE()`;
+     `;
   const approvedOrdersQuery = `  SELECT COUNT(*) AS approvedOrders
         FROM orders
         WHERE PharmacyId = ?
