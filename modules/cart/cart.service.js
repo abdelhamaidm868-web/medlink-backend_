@@ -563,7 +563,7 @@ export const addToCart = (req, res) => {
   );
 
 };
-
+///////////////////////////////////////////////////////////////////////////
 export const getCart = (req, res) => {
 
 const userId = req.user_data.id;
@@ -621,7 +621,9 @@ query,
   });
 
   return res.status(200).json({
-    items: result,
+    
+    data:[ {PharmacyId : result[0].PharmacyId ,PharmacyLocation : result[0].PharmacyLocation , PharmacyName:result[0].PharmacyName}] ,
+    items: [{MedicineId :result[0].MedicineId , Name:result[0].Name , Quantity:result[0].Quantity ,Price:result[0].Price , ItemTotal:result[0].ItemTotal}],
     totalPrice
   });
 
@@ -631,6 +633,8 @@ query,
 
 };
 
+
+//////////////////////////////////////////////////////////////////////////////////
 export const updateCartItem = (req, res) => {
 
 const userId = req.user_data.id;

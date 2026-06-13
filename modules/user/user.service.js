@@ -581,6 +581,8 @@ export const add_medicine = (req, res) => {
         if (error)
           return res.status(500).json({ msg: error.message });
 
+        console.log(result);
+        
         if (result.length !== 0) {
           return res.status(400).json({
             msg: "This medicine is already in your profile",
@@ -608,7 +610,7 @@ export const add_medicine = (req, res) => {
             }
 
             const medicineName = medicineResult[0].Name;
-
+// *************************************************************************
             // Check Drug Interactions
             const interactionQuery = `
               SELECT
@@ -633,14 +635,32 @@ export const add_medicine = (req, res) => {
                 if (error)
                   return res.status(500).json({ msg: error.message });
 
-                // لو فيه تعارض امنع الإضافة
-                if (interactionResult.length > 0) {
-                  return res.status(400).json({
-                    msg: "Drug interaction detected",
-                    interactions: interactionResult,
-                  });
-                }
 
+
+const query_substation = `
+select SubstituteName from drugsubstitutes where MedicineId = ? 
+`
+
+db.execute(query_substation , [medicine_id] , (error, result)=>{
+
+  if (error)
+    return res.status(500).json({msg:error.message})
+
+  
+                  // لو فيه تعارض امنع الإضافة
+                  if (interactionResult.length > 0) {
+                    return res.status(400).json({
+                      msg: "Drug interaction detected",
+                      interactions: interactionResult,
+                    subs : result
+                    });
+                  }
+  
+})
+
+
+
+// **********************************************************************
                 // Add Medicine
                 const insertQuery = `
                   INSERT INTO usermedicine
@@ -1053,9 +1073,9 @@ try {
   db.execute(pharmacyQuery, [id], (error, pharmacyResult) => {
     if (error) return res.status(500).json({ msg: error.message });
 
-    if (pharmacyResult.length === 0) {
-      return res.status(404).json({ message: "Pharmacy not has medicine " });
-    }
+    // if (pharmacyResult.length === 0) {
+    //   return res.status(404).json({ message: "Pharmacy not has medicine " });
+    // }
 
    res.status(200).json({msg:"sucess" , data:pharmacyResult})
 
