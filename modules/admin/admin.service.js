@@ -122,6 +122,7 @@ export const delete_pharmacy = (req, res) => {
     if (error) {
       return res.status(500).json({
         msg: error.message,
+        stack:error.stack
       });
     }
 

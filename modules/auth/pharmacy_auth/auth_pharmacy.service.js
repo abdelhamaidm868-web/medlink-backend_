@@ -1,28 +1,27 @@
 import bcrypt from "bcrypt";
 import { db } from "../../../config/database.js";
-import {html} from "../../../util/email/page_email.js"
+import { html } from "../../../util/email/page_email.js"
 import sendEmail from "../../../util/email/send_email.js";
 import jwt from "jsonwebtoken";
 
 
 
 //--------------------------------pharmecy register-------------------------------------------
-export const pharmacyRegister =  (req, res) => {
+export const pharmacyRegister = (req, res) => {
 
-  const { name, email, phone , location, password ,confirmPassword} = req.body;
+  const { name, email, phone, location, password, confirmPassword } = req.body;
 
-  if (!name || !email || !phone || !location || !password || !confirmPassword ) {
+  if (!name || !email || !phone || !location || !password || !confirmPassword) {
     return res.status(400).json({
       message: "All fields are required"
     });
   }
 
-  
-    if (password !== confirmPassword)
-    {
-      return res.status(400).json({message : "passeord do not match"})
-    }
-    
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "passeord do not match" })
+  }
+
   const checkQuery = "SELECT * FROM pharmacy WHERE email = ?";
 
   db.execute(checkQuery, [email], async (err, results) => {
@@ -50,7 +49,7 @@ export const pharmacyRegister =  (req, res) => {
 
       db.execute(
         insertQuery,
-        [name, email, hashedPassword,phone, location],
+        [name, email, hashedPassword, phone, location],
         (err, result) => {
 
           if (err) {
@@ -60,9 +59,9 @@ export const pharmacyRegister =  (req, res) => {
             });
           }
 
-         
- const token = jwt.sign({ email }, process.env.JWT_SECRET);
-const send = sendEmail({to:email , html: html(`http://localhost:4000/auth/pharmacy/acctivate/${token}`)})
+
+          const token = jwt.sign({ email }, process.env.JWT_SECRET);
+          const send = sendEmail({ to: email, html: html(`http://localhost:4000/auth/pharmacy/acctivate/${token}`) })
 
 
           res.status(201).json({
@@ -114,6 +113,11 @@ export const pharmacyLogin = (req, res) => {
       return res.status(400).json({ message: "invalid password" });
     }
 
+
+    if (result[0].IsActive == false) {
+      return res.status(401).json({ message: "this account not acctivate" });
+    }
+
     const token = jwt.sign(
       {
         id: user.Id,
@@ -142,16 +146,16 @@ export const pharmacyLogin = (req, res) => {
 
 
 
-export const acctivate = (req,res)=>{
-try {
-  
-const {token} = req.params 
+export const acctivate = (req, res) => {
+  try {
 
-const payload = jwt.verify(token , process.env.JWT_SECRET)
+    const { token } = req.params
 
-return res.status(200).json({msg:"email is acctivate" , eml:payload.email})
-} catch (error) {
-  res.status(500).json({sucess:false , errro : error.message , stack :error.stack})
-}
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+
+    return res.status(200).json({ msg: "email is acctivate", eml: payload.email })
+  } catch (error) {
+    res.status(500).json({ sucess: false, errro: error.message, stack: error.stack })
+  }
 
 }
